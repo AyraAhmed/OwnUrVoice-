@@ -1,0 +1,123 @@
+/* Main container with gradient background */
+.auth-container{
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2rem 0;
+}
+
+/* card styling */
+.auth-card{
+    border: none;
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+/* logo animation */
+.auth-logo{
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce{
+    0%, 100% {
+        transform: translate(0);
+    }
+    50%{
+        transform: translateY(-10px);
+    }
+}
+
+/* title styling */
+.auth-title{
+    color:#333;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+/* Form inputs */
+.form-control,.form-select{
+    border-radius: 0.5rem;
+    border: 2px solid #e9ecef;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus,.form-select:focus{
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.form-control-lg{
+    padding: 1rem 1.25rem;
+}
+
+/* Button styling */
+.btn-primary{
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.btn-primary:disabled{
+    background: #ccc;
+    transform: none;
+}
+
+/* Alert styling */
+.alert{
+    border-radius: 0.5rem;
+    border: none;
+}
+
+/* link styling */
+.text-primary{
+    color: #667eea !important;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.text-primary:hover{
+    color: #764ba2 !important;
+    text-decoration: underline;
+}
+
+/* Role specific section styling */
+.role-specific-section{
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-top: 1rem;
+    border-left: 4px solid #667eea;
+}
+
+/* Required field indicator */
+.text-danger{
+    color: #dc3545 !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px){
+    .auth-container{
+        padding: 1rem;
+    }
+
+    .auth-card .card-body{
+        padding: 2rem !important;
+    }
+
+    .auth-logo{
+        font-size: 2.5rem;
+    }
+}
