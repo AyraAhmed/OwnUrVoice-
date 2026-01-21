@@ -59,10 +59,10 @@ const Login: React.FC = () => {
               <div className="card-body p-5">
                 {/* Header */}
                 <div className="text-center mb-4">
-                  <h1 className="auth-logo">🎤 OwnUrVoice</h1>
-                  <h2 className="auth-title">Welcome Back</h2>
-                  <p className="text-muted">Sign in to continue</p>
+                 <h2 className="auth-title">Welcome Back</h2>
+                <p className="text-muted">Sign in to continue</p>
                 </div>
+
 
                 {/* Error message */}
                 {error && (

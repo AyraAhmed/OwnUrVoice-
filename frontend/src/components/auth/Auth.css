@@ -1,11 +1,12 @@
 /* Main container with gradient background */
-.auth-container{
+.auth-container {
     min-height: 100vh;
     display: flex;
     align-items: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #ffffff; 
     padding: 2rem 0;
-}
+  }
+  
 
 
 /* card styling */
@@ -13,22 +14,6 @@
     border: none;
     border-radius: 1rem;
     overflow: hidden;
-}
-
-/* logo animation */
-.auth-logo{
-    font-size: 3rem;
-    margin-bottom: 0.5rem;
-    animation: bounce 2s ease-in-out infinite;
-}
-
-@keyframes bounce{
-    0%, 100% {
-        transform: translate(0);
-    }
-    50%{
-        transform: translateY(-10px);
-    }
 }
 
 /* title styling */

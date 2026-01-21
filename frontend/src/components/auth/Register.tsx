@@ -146,10 +146,10 @@ const response = await authService.register(dataToSend);
               <div className="card-body p-5">
                 {/* Header */}
                 <div className="text-center mb-4">
-                  <h1 className="auth-logo">🎤 OwnUrVoice</h1>
-                  <h2 className="auth-title">Create Account</h2>
-                  <p className="text-muted">Join our speech therapy community</p>
+                <h2 className="auth-title">Create Account</h2>
+                <p className="text-muted">Join our speech therapy community</p>
                 </div>
+
 
                 {/* Error message */}
                 {error && (
