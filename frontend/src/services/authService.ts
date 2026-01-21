@@ -1,5 +1,6 @@
-// base API URL - points to backend server 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Base API URL - points to your backend server
+const API_URL = 'http://localhost:5000/api';
+
 
 // user interface - defines the structure of the user object 
 export interface User {
@@ -65,7 +66,7 @@ class AuthService {
     async register(data: RegisterData): Promise<AuthResponse>{
         try{
             // send POST request to register endpoint
-            const response = await fetch('${API_URL}/auth/register',{
+            const response = await fetch(`${API_URL}/auth/register`,{
                 method: 'POST', 
                 headers:{
                     'Content-Type': 'application/json', // Tells the server we are sending Json
@@ -151,10 +152,10 @@ class AuthService {
             if(!token) return false; 
 
             // send GET request to verify endpoint with token in header 
-            const response = await fetch ('${API_URL}/auth/verify', {
+            const response = await fetch (`${API_URL}/auth/verify`, {
                 method: 'GET',
                 headers: {
-                    'Authorisation': 'Bearer ${token}' // send token is authorisation header 
+                    'Authorization': `Bearer ${token}` // send token is authorisation header 
                 }
             });
 
