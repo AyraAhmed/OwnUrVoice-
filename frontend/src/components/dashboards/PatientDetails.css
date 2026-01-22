@@ -1,0 +1,414 @@
+/* Import Google Fonts for beautiful typography */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:wght@600;700&display=swap');
+
+/* Patient details page container */
+.patient-details-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+}
+
+/* Main content container - holds sidebar and details panel */
+.details-container {
+  flex: 1;
+  display: flex;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+/* Details panel - right side content */
+.details-panel {
+  flex: 1;
+  animation: fadeIn 0.4s ease;
+}
+
+/* Patient Info Card - displays patient avatar, name, email */
+.patient-info-card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+  animation: slideDown 0.5s ease;
+}
+
+/* Slide down animation for patient info card */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Patient Avatar Circle */
+.patient-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0; /* Prevent avatar from shrinking */
+}
+
+/* SVG icon inside avatar */
+.patient-avatar svg {
+  width: 40px;
+  height: 40px;
+  stroke: var(--primary);
+  stroke-width: 2;
+}
+
+/* Patient info text container */
+.patient-info-text {
+  flex: 1;
+}
+
+/* Patient name */
+.patient-name {
+  font-family: 'Fraunces', serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.02em;
+}
+
+/* Patient email */
+.patient-email {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+/* Joined date container with calendar icon */
+.patient-joined {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-tertiary);
+  font-size: 0.9rem;
+}
+
+/* Calendar icon */
+.calendar-icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+/* Section Cards - Progress & Goals, Exercises */
+.section-card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+  animation: fadeInUp 0.5s ease backwards;
+}
+
+/* Stagger animations for multiple section cards */
+.section-card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.section-card:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+/* Fade in from bottom animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Section header - title with icon */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.75rem;
+}
+
+/* Icon in section header */
+.section-icon {
+  width: 24px;
+  height: 24px;
+  stroke: var(--primary);
+  stroke-width: 2;
+}
+
+/* Section title */
+.section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+/* Goals List Container */
+.goals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Individual Goal Item */
+.goal-item {
+  padding: 1.5rem;
+  background: var(--background);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+  animation: slideInRight 0.5s ease backwards;
+}
+
+/* Slide in from right animation */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Hover effect for goal items */
+.goal-item:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Goal header - title and percentage */
+.goal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+/* Goal title */
+.goal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Goal progress percentage */
+.goal-percentage {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Goal description */
+.goal-description {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+/* Progress bar container */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #E0E7FF;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Progress bar fill - animated */
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+  border-radius: 10px;
+  transition: width 1s ease;
+  animation: progressGrow 1s ease backwards;
+}
+
+/* Progress bar grow animation */
+@keyframes progressGrow {
+  from {
+    width: 0% !important;
+  }
+}
+
+/* Exercises List Container */
+.exercises-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Individual Exercise Item */
+.exercise-item {
+  padding: 1.25rem 1.5rem;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  animation: slideInLeft 0.5s ease backwards;
+}
+
+/* Slide in from left animation */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Hover effect for exercise items */
+.exercise-item:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(4px);
+}
+
+/* Completed exercise styling - green background */
+.exercise-item.completed {
+  border-color: var(--success);
+  background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+}
+
+/* Exercise content container */
+.exercise-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Exercise header - title and status badge */
+.exercise-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Exercise title */
+.exercise-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Status Badge - "Completed" or "Pending" */
+.status-badge {
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Completed status badge - green */
+.status-badge.completed {
+  background: var(--success);
+  color: white;
+}
+
+/* Pending status badge - yellow */
+.status-badge.pending {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+/* Exercise description */
+.exercise-description {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Exercise footer - contains due date */
+.exercise-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Due date container with calendar icon */
+.exercise-due {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-tertiary);
+  font-size: 0.9rem;
+}
+
+/* Calendar icon in due date */
+.due-icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+/* Responsive Design - Tablet and Mobile */
+@media (max-width: 1200px) {
+  .details-container {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    display: flex;
+    overflow-x: auto;
+    padding: 1rem;
+  }
+  
+  .sidebar-item {
+    white-space: nowrap;
+    margin: 0 0.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Stack patient info card vertically on mobile */
+  .patient-info-card {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  /* Stack goal header vertically on mobile */
+  .goal-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  /* Stack exercise header vertically on mobile */
+  .exercise-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}

@@ -1,0 +1,438 @@
+/* Import Google Fonts for  typography */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:wght@600;700&display=swap');
+
+/* CSS Variables - Define colors and styles used throughout */
+:root {
+  --primary: #5B4FE9;
+  --primary-dark: #4839D4;
+  --primary-light: #7B72F0;
+  --background: #F8F9FC;
+  --surface: #FFFFFF;
+  --text-primary: #1A202C;
+  --text-secondary: #718096;
+  --text-tertiary: #A0AEC0;
+  --border: #E2E8F0;
+  --success: #10B981;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(91, 79, 233, 0.08);
+  --shadow-lg: 0 10px 30px rgba(91, 79, 233, 0.12);
+}
+
+/* Reset default styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Body styling */
+body {
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  background: var(--background);
+  color: var(--text-primary);
+}
+
+/* Main dashboard container */
+.therapist-dashboard {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Loading spinner styles */
+.loading-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background);
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Spin animation for loading spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Navigation Bar Styles */
+.dashboard-nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+
+.nav-content {
+  max-width: 1600px;
+  margin: 0 auto;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Brand logo in navigation */
+.brand {
+  font-family: 'Fraunces', serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: -0.02em;
+}
+
+/* Right side of navigation */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* Welcome text in navigation */
+.welcome-text {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Logout button */
+.logout-btn {
+  padding: 0.6rem 1.5rem;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  background: var(--background);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Dashboard Container - holds sidebar and main panel */
+.dashboard-container {
+  flex: 1;
+  display: flex;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+/* Sidebar Styles */
+.sidebar {
+  width: 260px;
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 1.5rem 0;
+  height: fit-content;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
+
+/* Individual sidebar menu items */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  margin: 0.25rem 1rem;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* Hover effect for sidebar items */
+.sidebar-item:hover {
+  background: var(--background);
+  color: var(--text-primary);
+}
+
+/* Active sidebar item (currently selected page) */
+.sidebar-item.active {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(91, 79, 233, 0.25);
+}
+
+/* Icons in sidebar */
+.sidebar-icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+
+/* Main Panel - right side content area */
+.main-panel {
+  flex: 1;
+  animation: fadeIn 0.4s ease;
+}
+
+/* Fade in animation for main panel */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Panel header section */
+.panel-header {
+  margin-bottom: 2rem;
+}
+
+/* Main title in panel */
+.panel-title {
+  font-family: 'Fraunces', serif;
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+/* Subtitle in panel */
+.panel-subtitle {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+/* Sessions Card - contains the table */
+.sessions-card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+}
+
+/* Card title */
+.card-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.01em;
+}
+
+/* Table Styles */
+.sessions-table {
+  width: 100%;
+}
+
+/* Table header row */
+.table-header {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr 0.8fr 2fr 0.8fr;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: var(--background);
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+}
+
+/* Table header cells */
+.th {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Table body container */
+.table-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Individual table rows */
+.table-row {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr 0.8fr 2fr 0.8fr;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  animation: slideIn 0.4s ease backwards;
+}
+
+/* Slide in animation for table rows */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Hover effect for table rows */
+.table-row:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* Table data cells */
+.td {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+}
+
+/* Patient name styling (bold) */
+.patient-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+/* Notes column styling */
+.notes {
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* View Button Styles */
+.view-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(91, 79, 233, 0.2);
+}
+
+/* Hover effect for view button */
+.view-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(91, 79, 233, 0.35);
+}
+
+/* Active (clicked) effect for view button */
+.view-btn:active {
+  transform: translateY(0);
+}
+
+/* Eye icon in view button */
+.view-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.5;
+}
+
+/* Footer Styles */
+.footer {
+  background: #1A202C;
+  color: white;
+  padding: 3rem 2rem 1.5rem;
+  margin-top: 4rem;
+}
+
+.footer-content {
+  max-width: 1600px;
+  margin: 0 auto;
+  margin-bottom: 2rem;
+}
+
+.footer-brand h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.footer-brand p {
+  color: #A0AEC0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 500px;
+}
+
+.footer-bottom {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding-top: 2rem;
+  border-top: 1px solid #2D3748;
+  text-align: center;
+}
+
+.footer-bottom p {
+  color: #A0AEC0;
+  font-size: 0.9rem;
+}
+
+/* Responsive Design - Mobile and Tablet */
+@media (max-width: 1200px) {
+  .dashboard-container {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    display: flex;
+    overflow-x: auto;
+    padding: 1rem;
+  }
+  
+  .sidebar-item {
+    white-space: nowrap;
+    margin: 0 0.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .table-header,
+  .table-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .th {
+    display: none;
+  }
+  
+  .td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    margin-right: 0.5rem;
+  }
+}

@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Home from './components/HomePage/Home';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
+import TherapistDashboard from './components/dashboards/TherapistDashboard';
+import PatientDetails from './components/dashboards/PatientDetails';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
@@ -17,7 +19,11 @@ function App() {
           {/* Auth routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          
+
+          {/* Dashboards*/}
+          <Route path="/therapist-dashboard" element={<TherapistDashboard/>} />
+          <Route path="/patient-details/:patientId" element={<PatientDetails/>} />
+
           {/* Catch all - redirect to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

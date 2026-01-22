@@ -122,20 +122,15 @@ const handleSubmit = async (e: React.FormEvent) => {
 
 // Call register API
 const response = await authService.register(dataToSend);
-      if (response.success) {
-        const user = response.data.user;
-        // Redirect based on role
-        if (user.role === 'therapist') {
-          navigate('/therapist/dashboard');
-        } else {
-          navigate('/patient/dashboard');
-        }
-      }
-    } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+if (response.success) {
+  // Registration successful! Redirect to login page
+  navigate('/login');
+}
+} catch (err: any) {
+  setError(err.message || 'Registration failed. Please try again.');
+} finally {
+  setLoading(false);
+}
   };
   return (
     <div className="auth-container">

@@ -38,9 +38,9 @@ const Login: React.FC = () => {
         const user = response.data.user;
         // Redirect based on role
         if (user.role === 'therapist') {
-          navigate('/therapist/dashboard');
+          navigate('/therapist-dashboard');  // Changed from /therapist/dashboard
         } else {
-          navigate('/patient/dashboard');
+          navigate('/patient-dashboard');     // Changed from /patient/dashboard
         }
       }
     } catch (err: any) {
