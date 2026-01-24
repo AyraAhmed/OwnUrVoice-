@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import authService, { RegisterData } from '../../services/authService';
+import supabaseAuthService, { RegisterData } from '../../services/supabaseAuthService';
 import './Auth.css';
 
 const Register: React.FC = () => {
@@ -16,7 +16,7 @@ const Register: React.FC = () => {
     lastName: '',
     phoneNumber: '',
     dateOfBirth: '',
-    role: '' as 'therapist' | 'patient' | '',
+    role: '' as 'therapist' | 'patient' | 'parent_carer' | '',
     
     // Therapist-specific fields
     clinicName: '',
@@ -25,7 +25,10 @@ const Register: React.FC = () => {
     
     // Patient-specific fields
     therapyStartDate: '',
-    preferredContactMethod: ''
+    preferredContactMethod: '',
+
+    // Parent/Carer specific fields
+    relationshipToPatient: ''
   });
 
   const [error, setError] = useState('');
@@ -81,57 +84,69 @@ const Register: React.FC = () => {
     return true;
   };
 
-  // Handle form submission
+// Handle form submission
 const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  e.preventDefault();
+  setError('');
+
+  // Validate form
+  if (!validateForm()) {
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    // Prepare data for API (remove confirmPassword)
+    const { confirmPassword, ...registerData } = formData;
   
-    // Validate form
-    if (!validateForm()) {
-      return;
-    }
-  
-    setLoading(true);
-  
-    try {
-      // Prepare data for API (remove confirmPassword)
-      const { confirmPassword, ...registerData } = formData;
-    
     // Build the data object
     const dataToSend = {
-    username: registerData.username,
-    email: registerData.email,
-    password: registerData.password,
-    firstName: registerData.firstName,
-    lastName: registerData.lastName,
-    phoneNumber: registerData.phoneNumber,
-    dateOfBirth: registerData.dateOfBirth,
-    role: registerData.role as 'therapist' | 'patient',
-    
-    // Add role-specific fields
-    ...(registerData.role === 'therapist' && {
-    clinicName: registerData.clinicName,
-    yearsOfExperience: parseInt(registerData.yearsOfExperience),
-    qualification: registerData.qualification
-  }),
-  ...(registerData.role === 'patient' && {
-    therapyStartDate: registerData.therapyStartDate,
-    preferredContactMethod: registerData.preferredContactMethod
-  })
-} as RegisterData;
+      username: registerData.username,
+      email: registerData.email,
+      password: registerData.password,
+      firstName: registerData.firstName,
+      lastName: registerData.lastName,
+      phoneNumber: registerData.phoneNumber,
+      dateOfBirth: registerData.dateOfBirth,
+      role: registerData.role as 'therapist' | 'patient' | 'parent_carer',  // ← FIXED: Added parent_carer
+      
+      // Add role-specific fields
+      ...(registerData.role === 'therapist' && {
+        clinicName: registerData.clinicName,
+        yearsOfExperience: parseInt(registerData.yearsOfExperience),
+        qualification: registerData.qualification
+      }),
+      ...(registerData.role === 'patient' && {
+        therapyStartDate: registerData.therapyStartDate,
+        preferredContactMethod: registerData.preferredContactMethod
+      }),
+      ...(registerData.role === 'parent_carer' && {  // ← ADDED: Parent/carer fields
+        relationshipToPatient: registerData.relationshipToPatient
+      })
+    } as RegisterData;
 
-// Call register API
-const response = await authService.register(dataToSend);
-if (response.success) {
-  // Registration successful! Redirect to login page
-  navigate('/login');
-}
-} catch (err: any) {
-  setError(err.message || 'Registration failed. Please try again.');
-} finally {
-  setLoading(false);
-}
-  };
+    console.log('📤 Sending registration data:', dataToSend);  // ← ADDED: Debug log
+    
+    // Call register API
+    const response = await supabaseAuthService.register(dataToSend);
+    
+    console.log('📥 Registration response:', response);  // ← ADDED: Debug log
+    
+    if (response.success) {
+      console.log('✅ Success! Redirecting to login...');  // ← ADDED: Debug log
+      navigate('/login');
+    } else {
+      console.log('❌ Registration failed:', response.message);  // ← ADDED: Debug log
+      setError(response.message || 'Registration failed');  // ← FIXED: Show error message
+    }
+  } catch (err: any) {
+    console.error('💥 Error caught:', err);  // ← ADDED: Debug log
+    setError(err.message || 'Registration failed. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="auth-container">
       <div className="container">
@@ -308,6 +323,7 @@ if (response.success) {
                       <option value="">Select your role</option>
                       <option value="patient">Patient</option>
                       <option value="therapist">Therapist</option>
+                      <option value="parent_carer">Parent/Carer</option>
                     </select>
                   </div>
 
@@ -409,6 +425,29 @@ if (response.success) {
                       </div>
                     </div>
                   )}
+
+                    {/* Conditional Fields - PARENT/CARER */}
+                    {formData.role === 'parent_carer' && (
+                      <div className="role-specific-section">
+                        <h5 className="mb-3 text-warning">Parent/Carer Information</h5>
+                        
+                        <div className="mb-3">
+                          <label htmlFor="relationshipToPatient" className="form-label">
+                            Relationship to Patient <span className="text-danger">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="relationshipToPatient"
+                            name="relationshipToPatient"
+                            value={formData.relationshipToPatient}
+                            onChange={handleChange}
+                            required
+                            placeholder="e.g., Mother, Father, Guardian"
+                          />
+                        </div>
+                      </div>
+                    )}
 
                   {/* Submit Button */}
                   <button
