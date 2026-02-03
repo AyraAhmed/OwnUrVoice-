@@ -91,12 +91,13 @@ const PatientDetails: React.FC = () => {
   // useEffect runs when component loads
   useEffect(() => {
     // Get user data from localStorage
-    const userStr = localStorage.getItem('user');
+    const userStr = localStorage.getItem('userData');
     if (userStr) {
       const userData = JSON.parse(userStr);
       setUser(userData);
       
       // Security check: Only therapists can view patient details
+      const userRole = userData?.user_role || userData?.role || userData?.userRole;
       if (userData.role !== 'therapist') {
         navigate('/patient-dashboard');
       }
@@ -109,7 +110,7 @@ const PatientDetails: React.FC = () => {
   // Handle logout button click
   const handleLogout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem('userData');
     navigate('/login');
   };
 
