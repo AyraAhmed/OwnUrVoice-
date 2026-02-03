@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import authService from '../../services/authService';
+import supabaseAuthService from '../../services/supabaseAuthService';
+import { supabase } from '../../services/supabaseClient';
 import './Auth.css';
 
 const Login: React.FC = () => {
@@ -24,32 +25,51 @@ const Login: React.FC = () => {
     setError(''); // Clear error when user types
   };
 
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
 
-    try {
-      // Call login API
-      const response = await authService.login(formData);
-      
-      if (response.success) {
-        const user = response.data.user;
-        // Redirect based on role
-        if (user.role === 'therapist') {
-          navigate('/therapist-dashboard');  // Changed from /therapist/dashboard
-        } else {
-          navigate('/patient-dashboard');     // Changed from /patient/dashboard
-        }
-      }
-    } catch (err: any) {
-      setError(err.message || 'Login failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+// Handle form submission
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
+  setLoading(true);
 
+  try {
+    console.log(' Attempting login with username:', formData.username);
+    
+    // Call Supabase login API
+    const response = await supabaseAuthService.login(formData.username, formData.password);
+    
+    console.log(' Login response:', response);
+
+    if (response.success) {
+      console.log('✅ Login successful! User:', response.user);
+    
+      // Save user data to localStorage
+      localStorage.setItem('userData', JSON.stringify(response.user));
+    
+      // Normalize role (prevents issues like "Therapist" or "therapist ")
+      const userRole = (response.user?.role || '').trim().toLowerCase();
+    
+      console.log('✅ ROLE USED FOR REDIRECT:', userRole);
+    
+      const roleToPath: Record<string, string> = {
+        therapist: '/therapist-dashboard',
+        patient: '/patient-dashboard',
+        parent_carer: '/parent-dashboard',
+      };
+    
+      navigate(roleToPath[userRole] ?? '/', { replace: true });
+    } else {
+      console.log('❌ Login failed:', response.message);
+      setError(response.message || 'Login failed');
+    }    
+    
+  } catch (err: any) {
+    console.error(' Login error:', err);
+    setError(err.message || 'An error occurred during login');
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="auth-container">
       <div className="container">
