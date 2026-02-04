@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createPatientWithSession, getTherapistSessions } from '../../services/supabaseTherapistService';
+import { getTherapistSessions, searchPatientByEmail, createSessionForPatient } from '../../services/supabaseTherapistService';
 import type { Session } from '../../services/supabaseTherapistService';
 import './TherapistDashboard.css';
 
@@ -12,18 +12,6 @@ interface User {
   role: 'therapist' | 'patient' | 'parent_carer';
   user_id?: string;
   id?: string;
-}
-
-// Interface for form data
-interface FormData {
-  username: string;
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string;
-  phoneNumber: string;
-  email: string;
-  patientProfile: string;
-  preferredContactMethod: string;
 }
 
 const TherapistDashboard: React.FC = () => {
@@ -38,16 +26,13 @@ const TherapistDashboard: React.FC = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [formData, setFormData] = useState<FormData>({
-    username: '',
-    firstName: '',
-    lastName: '',
-    dateOfBirth: '',
-    phoneNumber: '',
-    email: '',
-    patientProfile: '',
-    preferredContactMethod: 'email',
-  });
+  
+  // Form data for linking patient
+  const [searchEmail, setSearchEmail] = useState('');
+  const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0]);
+  const [sessionTime, setSessionTime] = useState('09:00');
+  const [sessionType, setSessionType] = useState('Initial Assessment');
+  const [location, setLocation] = useState('');
 
   useEffect(() => {
     // Get user from localStorage
@@ -101,71 +86,57 @@ const TherapistDashboard: React.FC = () => {
     navigate(`/therapist/patient/${session.patient_id}`, { state: { session } });
   };
 
-  // Handle form input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Handle linking existing patient
+  const handleLinkPatient = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setSuccessMessage(null);
 
     // Validation
-    if (!formData.username || !formData.firstName || !formData.lastName || 
-        !formData.dateOfBirth || !formData.phoneNumber || !formData.email) {
-      setFormError('Please fill in all required fields');
+    if (!searchEmail) {
+      setFormError('Please enter patient email');
       return;
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
+    if (!emailRegex.test(searchEmail)) {
       setFormError('Please enter a valid email address');
-      return;
-    }
-
-    // Phone validation (UK format)
-    const phoneRegex = /^(\+44|0)[0-9]{10}$/;
-    if (!phoneRegex.test(formData.phoneNumber.replace(/\s/g, ''))) {
-      setFormError('Please enter a valid UK phone number');
       return;
     }
 
     try {
       setFormLoading(true);
 
-      const patientData = {
-        username: formData.username,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        date_of_birth: formData.dateOfBirth,
-        phone_number: formData.phoneNumber,
-        email: formData.email,
-        patient_profile: formData.patientProfile || '',
-        preferred_contact_method: formData.preferredContactMethod,
-      };
+      // Search for patient by email
+      const patient = await searchPatientByEmail(searchEmail);
 
+      if (!patient) {
+        setFormError('Patient not found. Please ask the patient to register first with this email address.');
+        return;
+      }
+
+      // Create session for this patient
       const userId = user?.user_id || user?.id;
-      await createPatientWithSession(patientData, userId!);
+      await createSessionForPatient(
+        patient.user_id,
+        userId!,
+        {
+          session_date: sessionDate,
+          session_time: sessionTime + ':00', // Add seconds
+          session_type: sessionType,
+          location: location || 'To be determined'
+        }
+      );
 
-      setSuccessMessage(`Patient ${formData.firstName} ${formData.lastName} added successfully!`);
+      setSuccessMessage(`Successfully linked ${patient.first_name} ${patient.last_name}!`);
       
       // Clear form
-      setFormData({
-        username: '',
-        firstName: '',
-        lastName: '',
-        dateOfBirth: '',
-        phoneNumber: '',
-        email: '',
-        patientProfile: '',
-        preferredContactMethod: 'email',
-      });
+      setSearchEmail('');
+      setSessionDate(new Date().toISOString().split('T')[0]);
+      setSessionTime('09:00');
+      setSessionType('Initial Assessment');
+      setLocation('');
 
       // Reload sessions to show new patient
       if (user) {
@@ -179,8 +150,8 @@ const TherapistDashboard: React.FC = () => {
       }, 2000);
 
     } catch (err: any) {
-      console.error('Error adding patient:', err);
-      setFormError(err.message || 'Failed to add patient. Please try again.');
+      console.error('Error linking patient:', err);
+      setFormError(err.message || 'Failed to link patient. Please try again.');
     } finally {
       setFormLoading(false);
     }
@@ -290,7 +261,7 @@ const TherapistDashboard: React.FC = () => {
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0056b3'}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#007bff'}
             >
-              + Add New Patient
+              + Link Existing Patient
             </button>
             
             <button 
@@ -327,7 +298,7 @@ const TherapistDashboard: React.FC = () => {
             
             {sessions.length === 0 ? (
               <div style={{ padding: '40px', textAlign: 'center', color: '#6c757d' }}>
-                <p>No sessions yet. Click "Add New Patient" to get started!</p>
+                <p>No sessions yet. Click "Link Existing Patient" to get started!</p>
               </div>
             ) : (
               <div className="sessions-table">
@@ -373,13 +344,13 @@ const TherapistDashboard: React.FC = () => {
         </main>
       </div>
 
-      {/* Add Patient Modal */}
+      {/* Link Patient Modal */}
       {showModal && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setShowModal(false)}>
           <div className="modal-dialog modal-lg modal-dialog-scrollable" onClick={(e) => e.stopPropagation()}>
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Add New Patient</h5>
+                <h5 className="modal-title">Link Existing Patient</h5>
                 <button 
                   type="button" 
                   className="btn-close" 
@@ -400,112 +371,79 @@ const TherapistDashboard: React.FC = () => {
                   </div>
                 )}
                 
-                <form onSubmit={handleSubmit}>
+                <div className="alert alert-info">
+                  <strong>Note:</strong> The patient must register first before you can link them. Ask your patient to create an account, then enter their email here.
+                </div>
+
+                <form onSubmit={handleLinkPatient}>
                   <div className="mb-3">
-                    <label className="form-label">Username <span className="text-danger">*</span></label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="username"
-                      value={formData.username}
-                      onChange={handleChange}
-                      placeholder="Enter username"
-                      required
-                    />
-                  </div>
-
-                  <div className="row">
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">First Name <span className="text-danger">*</span></label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleChange}
-                        placeholder="Enter first name"
-                        required
-                      />
-                    </div>
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">Last Name <span className="text-danger">*</span></label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleChange}
-                        placeholder="Enter last name"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="row">
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">Date of Birth <span className="text-danger">*</span></label>
-                      <input
-                        type="date"
-                        className="form-control"
-                        name="dateOfBirth"
-                        value={formData.dateOfBirth}
-                        onChange={handleChange}
-                        max={new Date().toISOString().split('T')[0]}
-                        required
-                      />
-                    </div>
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">Phone Number <span className="text-danger">*</span></label>
-                      <input
-                        type="tel"
-                        className="form-control"
-                        name="phoneNumber"
-                        value={formData.phoneNumber}
-                        onChange={handleChange}
-                        placeholder="07700 900000"
-                        required
-                      />
-                      <small className="text-muted">UK format: 07700 900000 or +447700900000</small>
-                    </div>
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Email Address <span className="text-danger">*</span></label>
+                    <label className="form-label">Patient Email <span className="text-danger">*</span></label>
                     <input
                       type="email"
                       className="form-control"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
+                      value={searchEmail}
+                      onChange={(e) => setSearchEmail(e.target.value)}
                       placeholder="patient@example.com"
                       required
                     />
+                    <small className="text-muted">Enter the email the patient used to register</small>
+                  </div>
+
+                  <hr />
+
+                  <h6 className="mb-3">Session Details</h6>
+
+                  <div className="row">
+                    <div className="col-md-6 mb-3">
+                      <label className="form-label">Session Date <span className="text-danger">*</span></label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={sessionDate}
+                        onChange={(e) => setSessionDate(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                        required
+                      />
+                    </div>
+
+                    <div className="col-md-6 mb-3">
+                      <label className="form-label">Session Time <span className="text-danger">*</span></label>
+                      <input
+                        type="time"
+                        className="form-control"
+                        value={sessionTime}
+                        onChange={(e) => setSessionTime(e.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label">Preferred Contact Method</label>
+                    <label className="form-label">Session Type <span className="text-danger">*</span></label>
                     <select
                       className="form-select"
-                      name="preferredContactMethod"
-                      value={formData.preferredContactMethod}
-                      onChange={handleChange}
+                      value={sessionType}
+                      onChange={(e) => setSessionType(e.target.value)}
+                      required
                     >
-                      <option value="email">Email</option>
-                      <option value="phone">Phone</option>
-                      <option value="text">Text Message</option>
+                      <option value="Initial Assessment">Initial Assessment</option>
+                      <option value="Follow-up">Follow-up</option>
+                      <option value="Therapy Session">Therapy Session</option>
+                      <option value="Review">Review</option>
+                      <option value="Consultation">Consultation</option>
                     </select>
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label">Patient Profile / Notes</label>
-                    <textarea
+                    <label className="form-label">Location</label>
+                    <input
+                      type="text"
                       className="form-control"
-                      name="patientProfile"
-                      value={formData.patientProfile}
-                      onChange={handleChange}
-                      rows={3}
-                      placeholder="Enter diagnosis, medical history, therapy goals, etc."
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="Clinic Room 1, Online, etc."
                     />
+                    <small className="text-muted">Leave blank for "To be determined"</small>
                   </div>
 
                   <div className="modal-footer">
@@ -525,10 +463,10 @@ const TherapistDashboard: React.FC = () => {
                       {formLoading ? (
                         <>
                           <span className="spinner-border spinner-border-sm me-2"></span>
-                          Adding...
+                          Linking...
                         </>
                       ) : (
-                        'Add Patient'
+                        'Link Patient & Create Session'
                       )}
                     </button>
                   </div>
