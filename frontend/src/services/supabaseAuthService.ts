@@ -31,78 +31,26 @@ interface AuthResponse {
 
 class SupabaseAuthService {
     // register new user 
-// register new user 
-async register(data: RegisterData): Promise<AuthResponse> {
-    try {
-        // create auth user in supabase Auth
-        const{ data: authData, error: authError } = await supabase.auth.signUp({
-            email: data.email,
-            password: data.password,
-        });
-        if (authError) {
-            throw new Error(authError.message);
-        }
-        if (!authData.user){
-            throw new Error('User creation failed');
-        }
-        
-        // insert user data into appropriate table based on role 
-        let insertError;
-
-        if (data.role === 'therapist') {
-            const { error } = await supabase.from('therapist').insert({
-                user_id: authData.user.id,
-                username: data.username,
+    async register(data: RegisterData): Promise<AuthResponse> {
+        try {
+            // create auth user in supabase Auth
+            const{ data: authData, error: authError } = await supabase.auth.signUp({
                 email: data.email,
-                first_name: data.firstName,
-                last_name: data.lastName,
-                phone_number: data.phoneNumber,
-                date_of_birth: data.dateOfBirth,
-                user_role: 'therapist',
-                clinic_name: data.clinicName,
-                years_of_experience: data.yearsOfExperience,
-                qualification: data.qualification,
+                password: data.password,
             });
-            insertError = error;
-        } else if (data.role === 'patient') {
-
-            // PATIENT AUTO-LINKING LOGIC 
-
-            console.log('🔗 Patient registration - checking for existing record by email...');
             
-            // Check if patient record exists with this email
-            const { data: existingPatient, error: findError } = await supabase
-                .from('patient')
-                .select('*')
-                .eq('email', data.email)
-                .maybeSingle();
+            if (authError) {
+                throw new Error(authError.message);
+            }
+            if (!authData.user){
+                throw new Error('User creation failed');
+            }
             
-            if (existingPatient) {
-                console.log('📋 Found existing patient record - updating user_id');
-                
-                // Patient already exists (added by therapist) - just update user_id
-                const { error: updateError } = await supabase
-                    .from('patient')
-                    .update({ 
-                        user_id: authData.user.id,
-                        // Optionally update other fields if they provided different info
-                        first_name: data.firstName,
-                        last_name: data.lastName,
-                        phone_number: data.phoneNumber,
-                        date_of_birth: data.dateOfBirth,
-                    })
-                    .eq('email', data.email);
-                
-                insertError = updateError;
-                
-                if (!updateError) {
-                    console.log('✅ Successfully linked patient to existing record');
-                }
-            } else {
-                console.log('ℹ️ No existing patient record - creating new one');
-                
-                // No existing patient record - create new one
-                const { error } = await supabase.from('patient').insert({
+            // insert user data into appropriate table based on role 
+            let insertError;
+
+            if (data.role === 'therapist') {
+                const { error } = await supabase.from('therapist').insert({
                     user_id: authData.user.id,
                     username: data.username,
                     email: data.email,
@@ -110,46 +58,64 @@ async register(data: RegisterData): Promise<AuthResponse> {
                     last_name: data.lastName,
                     phone_number: data.phoneNumber,
                     date_of_birth: data.dateOfBirth,
+                    user_role: 'therapist',
+                    clinic_name: data.clinicName,
+                    years_of_experience: data.yearsOfExperience,
+                    qualification: data.qualification,
+                });
+                insertError = error;
+            } else if (data.role === 'patient') {
+                // SIMPLIFIED PATIENT REGISTRATION - NO AUTO-LINKING
+                console.log('Creating new patient account...');
+                
+                const { error } = await supabase.from('patient').insert({
+                    user_id: authData.user.id,  // Real UUID from auth
+                    username: data.username,
+                    email: data.email,
+                    first_name: data.firstName,
+                    last_name: data.lastName,
+                    phone_number: data.phoneNumber,
+                    date_of_birth: data.dateOfBirth,
                     user_role: 'patient',
-                    therapy_start_date: data.therapyStartDate,
-                    preferred_contact_method: data.preferredContactMethod,
+                    therapy_start_date: data.therapyStartDate || new Date().toISOString().split('T')[0],
+                    preferred_contact_method: data.preferredContactMethod || 'email',
+                });
+                insertError = error;
+                
+                if (!error) {
+                    console.log('✅ Patient account created successfully');
+                }
+            } else if (data.role === 'parent_carer') {
+                const { error } = await supabase.from('parent_carer').insert({
+                    user_id: authData.user.id,
+                    username: data.username,
+                    email: data.email, 
+                    first_name: data.firstName, 
+                    last_name: data.lastName, 
+                    phone_number: data.phoneNumber, 
+                    date_of_birth: data.dateOfBirth, 
+                    user_role: 'parent_carer', 
+                    relationship_to_patient: data.relationshipToPatient,
                 });
                 insertError = error;
             }
-
-            // END PATIENT AUTO-LINKING
-
-        } else if (data.role === 'parent_carer') {
-            const { error } = await supabase.from('parent_carer').insert({
-                user_id: authData.user.id,
-                username: data.username,
-                email: data.email, 
-                first_name: data.firstName, 
-                last_name: data.lastName, 
-                phone_number: data.phoneNumber, 
-                date_of_birth: data.dateOfBirth, 
-                user_role: 'parent_carer', 
-                relationship_to_patient: data.relationshipToPatient,
-            });
-            insertError = error;
+            
+            if (insertError) {
+                throw new Error(insertError.message);
+            }
+            
+            return {
+                success: true, 
+                message: 'Registration Successful!', 
+                user: authData.user,
+            };
+        } catch (error: any) {
+            return {
+                success: false, 
+                message: error.message || 'Registration failed', 
+            };
         }
-        
-        if (insertError) {
-            throw new Error(insertError.message);
-        }
-        
-        return {
-            success: true, 
-            message: 'Registration Successful!', 
-            user: authData.user,
-        };
-    } catch (error: any) {
-        return {
-            success: false, 
-            message: error.message || 'Registration failed', 
-        };
     }
-}
 
     // Login user 
     async login(username: string, password: string): Promise<AuthResponse> {
@@ -160,12 +126,11 @@ async register(data: RegisterData): Promise<AuthResponse> {
             let fullUserData: any = null;
 
             // check therapist table
-
             const { data: therapistData } = await supabase
-            .from('therapist')
-            .select('*')
-            .eq('username', username)
-            .maybeSingle();
+                .from('therapist')
+                .select('*')
+                .eq('username', username)
+                .maybeSingle();
 
             if (therapistData) {
                 email = therapistData.email;
@@ -174,10 +139,10 @@ async register(data: RegisterData): Promise<AuthResponse> {
             } else {
                 // check patient table 
                 const { data: patientData } = await supabase 
-                .from('patient')
-                .select('*')
-                .eq('username', username)
-                .maybeSingle();
+                    .from('patient')
+                    .select('*')
+                    .eq('username', username)
+                    .maybeSingle();
                 
                 if (patientData) {
                     email = patientData.email;
@@ -186,10 +151,10 @@ async register(data: RegisterData): Promise<AuthResponse> {
                 } else {
                     // check parent_carer table 
                     const { data: parentData } = await supabase 
-                    .from('parent_carer')
-                    .select('*')
-                    .eq('username', username)
-                    .maybeSingle();
+                        .from('parent_carer')
+                        .select('*')
+                        .eq('username', username)
+                        .maybeSingle();
 
                     if (parentData) {
                         email = parentData.email;
@@ -197,7 +162,6 @@ async register(data: RegisterData): Promise<AuthResponse> {
                         fullUserData = parentData;
                     }
                 }
-
             }
 
             if (!email) {
@@ -210,13 +174,13 @@ async register(data: RegisterData): Promise<AuthResponse> {
             const { data, error } = await supabase.auth.signInWithPassword({
                 email: email,
                 password: password,
-              });
+            });
 
-              if (error) {
+            if (error) {
                 throw new Error(error.message);
-              }
+            }
 
-              return {
+            return {
                 success: true, 
                 message: 'Login successful',
                 user: {
