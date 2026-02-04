@@ -48,26 +48,32 @@ const PatientDashboard: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-
+  
+      // Get the user_id from userData (this is the patient's user_id)
+      const userId = userData.user_id || userData.id;
       
-      const userId = userData.id;
-
-      // Load patient profile (assumes your service expects Supabase auth user id)
+      console.log('Loading dashboard for patient user_id:', userId);
+  
+      // Load patient profile
       const profileData = await getPatientProfile(userId);
-
+  
       if (!profileData) {
         setError('Patient profile not found');
         return;
       }
-
+  
       setProfile(profileData);
-
-      // Fetch therapists + upcoming sessions using the same logged-in user id
+      console.log('Patient profile loaded:', profileData);
+  
+      // Fetch therapists + upcoming sessions using the patient's user_id
       const [therapistsData, sessionsData] = await Promise.all([
         getPatientTherapists(userId),
         getPatientUpcomingSessions(userId)
       ]);
-
+  
+      console.log('Therapists:', therapistsData);
+      console.log('Sessions:', sessionsData);
+  
       setTherapists(therapistsData);
       setUpcomingSessions(sessionsData);
     } catch (err: any) {
