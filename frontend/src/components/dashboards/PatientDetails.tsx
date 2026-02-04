@@ -7,7 +7,7 @@ interface Goal {
   id: string;
   title: string;
   description: string;
-  progress: number; // Progress percentage (0-100)
+  progress: number;
 }
 
 // Interface for exercise data structure
@@ -16,14 +16,16 @@ interface Exercise {
   title: string;
   description: string;
   dueDate: string;
-  status: 'completed' | 'pending'; // Exercise can be either completed or pending
+  status: 'completed' | 'pending';
 }
 
 // Interface for patient information
 interface PatientInfo {
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
-  joinedDate: string;
+  therapy_start_date: string;
+  user_id: string;
 }
 
 // Interface for user data
@@ -33,19 +35,15 @@ interface User {
 }
 
 const PatientDetails: React.FC = () => {
-  const navigate = useNavigate();                           // navigation 
-  const location = useLocation();                           // access location state 
-  const { patientId } = useParams();                        // URL parameters (patient ID from URL)
-  const [user, setUser] = useState<User | null>(null);      // store current user information 
-  
-  // Get patient info from navigation state (passed from dashboard)
-  // If no data is passed, use default values
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { patientId } = useParams();
+  const [user, setUser] = useState<User | null>(null);
+  const [patientInfo, setPatientInfo] = useState<PatientInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Get session from navigation state
   const sessionData = location.state?.session;
-  const [patientInfo] = useState<PatientInfo>({
-    name: sessionData?.patientName || 'Alex Parker',
-    email: sessionData?.patientEmail || 'alex.parker@email.com',
-    joinedDate: sessionData?.joinedDate || '11/15/2025'
-  });
 
   // State for patient goals
   const [goals] = useState<Goal[]>([
@@ -53,13 +51,13 @@ const PatientDetails: React.FC = () => {
       id: '1',
       title: 'Improve breathing control',
       description: 'Practice diaphragmatic breathing for 10 minutes daily',
-      progress: 75 // 75% complete
+      progress: 75
     },
     {
       id: '2',
       title: 'Reduce speech blocks',
       description: 'Use easy onset technique in conversation',
-      progress: 60 // 60% complete
+      progress: 60
     }
   ]);
 
@@ -70,25 +68,24 @@ const PatientDetails: React.FC = () => {
       title: 'Daily breathing exercises',
       description: 'Practice deep breathing for 10 minutes',
       dueDate: '1/18/2026',
-      status: 'completed' // This exercise is completed
+      status: 'completed'
     },
     {
       id: '2',
       title: 'Pacing practice',
       description: 'Read aloud with controlled pacing for 15 minutes',
       dueDate: '1/20/2026',
-      status: 'pending' // This exercise is pending
+      status: 'pending'
     },
     {
       id: '3',
       title: 'Conversation exercise',
       description: 'Practice easy onset in daily conversations',
       dueDate: '1/22/2026',
-      status: 'pending' // This exercise is pending
+      status: 'pending'
     }
   ]);
 
-  // useEffect runs when component loads
   useEffect(() => {
     // Get user data from localStorage
     const userStr = localStorage.getItem('userData');
@@ -98,14 +95,25 @@ const PatientDetails: React.FC = () => {
       
       // Security check: Only therapists can view patient details
       const userRole = userData?.user_role || userData?.role || userData?.userRole;
-      if (userData.role !== 'therapist') {
+      if (userRole !== 'therapist') {
         navigate('/patient-dashboard');
+        return;
       }
     } else {
-      // No user found - redirect to login
       navigate('/login');
+      return;
     }
-  }, [navigate]);
+
+    // Load patient data from session
+    if (sessionData && sessionData.patient) {
+      console.log('Patient data from session:', sessionData.patient);
+      setPatientInfo(sessionData.patient);
+    } else {
+      console.log('No session data, patient ID from URL:', patientId);
+    }
+    
+    setLoading(false);
+  }, [navigate, sessionData, patientId]);
 
   // Handle logout button click
   const handleLogout = () => {
@@ -119,15 +127,20 @@ const PatientDetails: React.FC = () => {
     navigate('/therapist-dashboard');
   };
 
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="patient-details-page">
       {/* Navigation Bar */}
       <nav className="dashboard-nav">
         <div className="nav-content">
-          {/* App logo */}
           <h1 className="brand">OwnUrVoice</h1>
-          
-          {/* Right side of navbar - welcome message and logout */}
           <div className="nav-right">
             <span className="welcome-text">Welcome, {user?.firstName} {user?.lastName}</span>
             <button onClick={handleLogout} className="logout-btn">Logout</button>
@@ -139,7 +152,6 @@ const PatientDetails: React.FC = () => {
       <div className="details-container">
         {/* Left Sidebar Navigation */}
         <aside className="sidebar">
-          {/* Dashboard menu item - click to go back to dashboard */}
           <div className="sidebar-item" onClick={handleBackToDashboard}>
             <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <rect x="3" y="3" width="7" height="7"/>
@@ -150,7 +162,6 @@ const PatientDetails: React.FC = () => {
             <span>Dashboard</span>
           </div>
           
-          {/* Patient Details menu item (currently active) */}
           <div className="sidebar-item active">
             <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -159,7 +170,6 @@ const PatientDetails: React.FC = () => {
             <span>Patient Details</span>
           </div>
           
-          {/* Goals & Exercises menu item */}
           <div className="sidebar-item">
             <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <circle cx="12" cy="12" r="10"/>
@@ -168,7 +178,6 @@ const PatientDetails: React.FC = () => {
             <span>Goals & Exercises</span>
           </div>
           
-          {/* Resources menu item */}
           <div className="sidebar-item">
             <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
@@ -178,14 +187,14 @@ const PatientDetails: React.FC = () => {
           </div>
         </aside>
 
-        {/* Main Content Panel (right side) */}
+        {/* Main Content Panel */}
         <main className="details-panel">
           {/* Page Header */}
           <div className="panel-header">
             <h2 className="panel-title">Patient Details</h2>
           </div>
 
-          {/* Patient Info Card - shows patient avatar, name, email, joined date */}
+          {/* Patient Info Card */}
           <div className="patient-info-card">
             {/* Patient Avatar Circle */}
             <div className="patient-avatar">
@@ -197,8 +206,10 @@ const PatientDetails: React.FC = () => {
             
             {/* Patient Information Text */}
             <div className="patient-info-text">
-              <h3 className="patient-name">{patientInfo.name}</h3>
-              <p className="patient-email">{patientInfo.email}</p>
+              <h3 className="patient-name">
+                {patientInfo?.first_name} {patientInfo?.last_name}
+              </h3>
+              <p className="patient-email">{patientInfo?.email}</p>
               
               {/* Joined Date with Calendar Icon */}
               <div className="patient-joined">
@@ -208,14 +219,22 @@ const PatientDetails: React.FC = () => {
                   <line x1="8" y1="2" x2="8" y2="6"/>
                   <line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
-                <span>Joined {patientInfo.joinedDate}</span>
+                <span>
+                  Joined {patientInfo?.therapy_start_date 
+                    ? new Date(patientInfo.therapy_start_date).toLocaleDateString('en-US', {
+                        month: 'numeric',
+                        day: 'numeric', 
+                        year: 'numeric'
+                      })
+                    : 'N/A'
+                  }
+                </span>
               </div>
             </div>
           </div>
 
           {/* Progress & Goals Section */}
           <div className="section-card">
-            {/* Section Header with Icon */}
             <div className="section-header">
               <svg className="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -229,7 +248,6 @@ const PatientDetails: React.FC = () => {
                 <div 
                   key={goal.id} 
                   className="goal-item"
-                  // Stagger animation for each goal
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   {/* Goal Header - Title and Progress Percentage */}
@@ -267,16 +285,13 @@ const PatientDetails: React.FC = () => {
               {exercises.map((exercise, index) => (
                 <div 
                   key={exercise.id} 
-                  // Add class based on status (completed or pending)
                   className={`exercise-item ${exercise.status}`}
-                  // Stagger animation for each exercise
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <div className="exercise-content">
                     {/* Exercise Header - Title and Status Badge */}
                     <div className="exercise-header">
                       <h4 className="exercise-title">{exercise.title}</h4>
-                      {/* Status badge shows "Completed" or "Pending" */}
                       <span className={`status-badge ${exercise.status}`}>
                         {exercise.status === 'completed' ? 'Completed' : 'Pending'}
                       </span>
@@ -321,5 +336,4 @@ const PatientDetails: React.FC = () => {
   );
 };
 
-// Export the component so it can be imported in App.tsx
 export default PatientDetails;
