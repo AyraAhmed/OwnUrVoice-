@@ -490,3 +490,59 @@ export const getPatientSessionExercises = async (patientId: string): Promise<Ses
       throw error;
     }
   };
+
+    /**
+ * Search for patient by email
+ */
+export const searchPatientByEmail = async (email: string): Promise<Patient | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('patient')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error searching patient:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create session for existing patient (links therapist to patient)
+ */
+export const createSessionForPatient = async (
+  patientId: string,
+  therapistId: string,
+  sessionData: {
+    session_date: string;
+    session_time: string;
+    session_type: string;
+    location: string;
+  }
+): Promise<Session> => {
+  try {
+    const { data, error } = await supabase
+      .from('session')
+      .insert({
+        patient_id: patientId,
+        therapist_id: therapistId,
+        session_date: sessionData.session_date,
+        session_time: sessionData.session_time,
+        session_type: sessionData.session_type,
+        status: 'scheduled',
+        location: sessionData.location
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error creating session:', error);
+    throw error;
+  }
+};
+  
