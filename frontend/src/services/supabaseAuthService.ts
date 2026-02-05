@@ -1,5 +1,9 @@
 import { supabase } from './supabaseClient';
 
+/**
+ * Interface representing the complete set of registration data 
+ * Including role-specific optional fields 
+ */
 export interface RegisterData {
     username: string;
     email: string;
@@ -10,6 +14,9 @@ export interface RegisterData {
     dateOfBirth: string;
     role: 'therapist' | 'patient' | 'parent_carer';
 
+/**
+ *  Role-specific fields 
+*/ 
     // Therapist-specific 
     clinicName?: string;
     yearsOfExperience?: number;
@@ -23,6 +30,9 @@ export interface RegisterData {
     relationshipToPatient?: string;
 }
 
+/**
+ * Standardised response format for all Auth actions 
+ */
 interface AuthResponse {
     success: boolean;
     message?: string;
@@ -30,10 +40,15 @@ interface AuthResponse {
 }
 
 class SupabaseAuthService {
-    // register new user 
+   
+    /**
+     * register new user
+     * Handles the two-step registration process - Creates a Supabase Auth entry, and persists profile details in a role-specific table
+     * */ 
+
     async register(data: RegisterData): Promise<AuthResponse> {
         try {
-            // create auth user in supabase Auth
+            // Create the system-level authentication user 
             const{ data: authData, error: authError } = await supabase.auth.signUp({
                 email: data.email,
                 password: data.password,
@@ -45,10 +60,10 @@ class SupabaseAuthService {
             if (!authData.user){
                 throw new Error('User creation failed');
             }
-            
-            // insert user data into appropriate table based on role 
+             
             let insertError;
-
+           
+            // Route the user profile to the correct database table 
             if (data.role === 'therapist') {
                 const { error } = await supabase.from('therapist').insert({
                     user_id: authData.user.id,
@@ -64,12 +79,15 @@ class SupabaseAuthService {
                     qualification: data.qualification,
                 });
                 insertError = error;
+
+                // Patient registration
             } else if (data.role === 'patient') {
-                // SIMPLIFIED PATIENT REGISTRATION - NO AUTO-LINKING
+                
+                  
                 console.log('Creating new patient account...');
                 
                 const { error } = await supabase.from('patient').insert({
-                    user_id: authData.user.id,  // Real UUID from auth
+                    user_id: authData.user.id,  
                     username: data.username,
                     email: data.email,
                     first_name: data.firstName,
@@ -83,8 +101,10 @@ class SupabaseAuthService {
                 insertError = error;
                 
                 if (!error) {
-                    console.log('✅ Patient account created successfully');
+                    console.log(' Patient account created successfully');
                 }
+
+                // Parent/carer registration 
             } else if (data.role === 'parent_carer') {
                 const { error } = await supabase.from('parent_carer').insert({
                     user_id: authData.user.id,
@@ -116,6 +136,12 @@ class SupabaseAuthService {
             };
         }
     }
+
+    /** 
+     * Login flow: 
+     * Searches through profile tables to map a username to an email 
+     * Authenticates with supabase using the found email 
+    */
 
     // Login user 
     async login(username: string, password: string): Promise<AuthResponse> {
@@ -170,7 +196,7 @@ class SupabaseAuthService {
 
             console.log('Found email for username, role:', userRole);
 
-            // Login with email password 
+            // Login with email and password 
             const { data, error } = await supabase.auth.signInWithPassword({
                 email: email,
                 password: password,
@@ -202,18 +228,18 @@ class SupabaseAuthService {
         }
     }
 
-    // Logout user 
+    /** Terminate the current supabase session */ 
     async logout(): Promise<void> {
         await supabase.auth.signOut();
     }
 
-    // Get current user 
+    /** Retrieve the raw Supabase Auth user object */ 
     async getCurrentUser() {
         const { data: { user } } = await supabase.auth.getUser();
         return user;
     }
 
-    // check if user is authenticated 
+    /**  check if a valid session exits */
     async isAuthenticated(): Promise<boolean> {
         const user = await this.getCurrentUser();
         return !!user;
