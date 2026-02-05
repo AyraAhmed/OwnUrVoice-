@@ -4,10 +4,14 @@ import supabaseAuthService, { RegisterData } from '../../services/supabaseAuthSe
 import { supabase } from '../../services/supabaseClient';
 import './Auth.css';
 
+/**
+ * Handles user sign-up for Therapists, Patients, and Parents/Carers
+ * Integrates with Supabase Auth and performs profile linking  
+ */
 const Register: React.FC = () => {
   const navigate = useNavigate();
 
-  // State for all form fields
+  // Initial state for the registration form 
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -35,6 +39,10 @@ const Register: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Updates state on input change 
+   */
+
   // Handle input changes for all fields
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
@@ -43,6 +51,10 @@ const Register: React.FC = () => {
     });
     setError(''); // Clear error when user types
   };
+
+  /**
+   * Performs client-side validation
+   */
 
   // Validate form before submission
   const validateForm = (): boolean => {
@@ -84,6 +96,11 @@ const Register: React.FC = () => {
 
     return true;
   };
+
+  /**
+   * Main submission handler 
+   * Manages API calls and post-registration data linking 
+  */
 
 // Handle form submission
 const handleSubmit = async (e: React.FormEvent) => {
@@ -127,70 +144,30 @@ const handleSubmit = async (e: React.FormEvent) => {
       })
     } as RegisterData;
 
-    console.log('📤 Sending registration data:', dataToSend); 
+    console.log('Sending registration data:', dataToSend); 
     
     // Call register API
     const response = await supabaseAuthService.register(dataToSend);
     
-    console.log('📥 Registration response:', response); 
+    console.log('Registration response:', response); 
     
     if (response.success) {
-      console.log('✅ Success! User created:', response.user);
-      
-   
-      // AUTO-LINK PATIENT BY EMAIL 
-
-      if (registerData.role === 'patient' && response.user?.user_id) {
-        console.log('🔗 Patient detected - attempting auto-link by email...');
-        
-        try {
-          // Check if patient record exists with this email
-          const { data: existingPatient, error: findError } = await supabase
-            .from('patient')
-            .select('*')
-            .eq('email', registerData.email)
-            .single();
-          
-          if (existingPatient && !findError) {
-            console.log('📋 Found existing patient record:', existingPatient);
-            
-            // Update patient record with real user_id
-            const { error: updateError } = await supabase
-              .from('patient')
-              .update({ user_id: response.user.user_id })
-              .eq('email', registerData.email);
-            
-            if (updateError) {
-              console.error('❌ Failed to link patient:', updateError);
-            } else {
-              console.log('✅ Patient successfully linked to their record!');
-            }
-          } else {
-            console.log('ℹ️ No existing patient record found - patient may need to be added by therapist first');
-          }
-        } catch (linkError) {
-          console.error('❌ Error during auto-linking:', linkError);
-          // Don't throw - registration was successful, linking is optional
-        }
-      }
-     
-      // END AUTO-LINK CODE
-
-      
-      console.log('✅ Registration complete! Redirecting to login...');
+      console.log('Success! User created:', response.user);
+      console.log('Registration complete! Redirecting to login...');
       navigate('/login');
-      
     } else {
-      console.log('❌ Registration failed:', response.message);  
+      console.log('Registration failed:', response.message);  
       setError(response.message || 'Registration failed');  
     }
   } catch (err: any) {
-    console.error('💥 Error caught:', err);  
+    console.error('Error caught:', err);  
     setError(err.message || 'Registration failed. Please try again.');
   } finally {
     setLoading(false);
   }
 };
+
+/** UI components */
   return (
     <div className="auth-container">
       <div className="container">
