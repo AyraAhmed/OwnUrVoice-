@@ -1,12 +1,16 @@
-// frontend/src/components/HomePage/Home.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
 
+/**
+ * Home Component 
+ * Serves as the primary landing page, featuring platform information 
+ * and an automated testimonial slider 
+ */
 const Home: React.FC = () => {
   const navigate = useNavigate();
   
-  // Testimonials data
+  // Data source for the 'You're Not Alone section 
   const testimonials = [
     {
       quote: "I had a stutter as a kid and singing really helped me get over it.",
@@ -82,40 +86,51 @@ const Home: React.FC = () => {
     }
   ];
   
-// Auto rotate the testimonials 
+// Auto rotate the testimonials (Carousel state)
 const [currentTestimonial, setCurrentTestimonial] = useState(0);
 const [direction, setDirection] = useState<'left' | 'right'>('right');
 
 const intervalRef = useRef<number | null>(null);
 
-const ROTATE_MS = 3000; // ✅ 3 seconds (change to 2000, 2500 etc)
+const ROTATE_MS = 3000; // Duration of each testimonial stays on screen (3 seconds)
 
+/**
+ * Clears any existing timer and starts a new 3-second interval 
+ * to automatically advance the testimonial slider 
+ */
 const startAutoRotate = () => {
   if (intervalRef.current) window.clearInterval(intervalRef.current);
 
   intervalRef.current = window.setInterval(() => {
     setDirection('right');
+
+    // Functional update ensures we always have the latest index
     setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
   }, ROTATE_MS);
 };
 
+/**
+ * Initialise the rotation in mount and clean up the interval on unmount to prevent memory leaks 
+ */
 useEffect(() => {
   startAutoRotate();
   return () => {
     if (intervalRef.current) window.clearInterval(intervalRef.current);
   };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [testimonials.length]);
 
-  
+/**
+ * Navigation handlers 
+ */
 
-  // Navigate to next testimonial
+  // Navigate to next testimonial and resets the auto-rotation timer
   const nextTestimonial = () => {
     setDirection('right');
     setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
     startAutoRotate();
   };
   
+  // Goes to the previous slide using modulo math to wrap around to the end 
   const prevTestimonial = () => {
     setDirection('left');
     setCurrentTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length);
@@ -135,7 +150,7 @@ useEffect(() => {
         </div>
       </nav>
 
-{/* Hero Section */}
+{/* Hero Section: Main Visual and Call to Action */}
 <section className="hero-section">
 <img
   className="hero-image"
@@ -160,11 +175,12 @@ useEffect(() => {
 </section>
 
 
-      {/* How OwnUrVoice Works Section */}
+      {/* Info section: Highlights specific value for each user type */}
       <section className="how-it-works-section">
         <h2 className="section-title">How OwnUrVoice Works</h2>
         <div className="features-container">
-          {/* For Therapists */}
+
+          {/* Therapist Card */}
           <div className="feature-card">
             <div className="feature-icon therapist-icon">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -178,7 +194,7 @@ useEffect(() => {
             </p>
           </div>
 
-          {/* For Patients */}
+          {/* Patient Card */}
           <div className="feature-card">
             <div className="feature-icon patient-icon">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -191,7 +207,7 @@ useEffect(() => {
             </p>
           </div>
 
-          {/* For Parents & Carers */}
+          {/* Parents & Carers Card */}
           <div className="feature-card">
             <div className="feature-icon parents-icon">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -209,7 +225,7 @@ useEffect(() => {
         </div>
       </section>
 
-      {/* You're Not Alone Section */}
+      {/* Testimonial Section: Interactive Carousel */}
       <section className="testimonials-section">
         <h2 className="section-title">You're Not Alone</h2>
         <div className="testimonial-container">
@@ -231,6 +247,8 @@ useEffect(() => {
             ›
           </button>
         </div>
+
+        {/* Navigation Dots */}
         <div className="testimonial-dots">
           {testimonials.map((_, index) => (
             <span 
