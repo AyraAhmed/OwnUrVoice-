@@ -1,17 +1,18 @@
 import { supabase } from './supabaseClient';
 import { Session, Goal, Exercise, SessionExercise, GoalExercise, Patient, Therapist } from './supabaseTherapistService';
 
-// Additional interfaces for patient-specific data
+/**
+ *Extends the base Patient interface to include optional therapist details 
+ */
 export interface PatientProfile extends Patient {
   therapist?: Therapist;
 }
 
 
-// PATIENT FUNCTIONS
-
 
 /**
- * Get patient profile by user_id
+ * Patient Functions 
+ * Fetches the specific patient record associated with a Supabase Auth User ID
  */
 export const getPatientProfile = async (userId: string): Promise<PatientProfile | null> => {
   try {
@@ -30,11 +31,11 @@ export const getPatientProfile = async (userId: string): Promise<PatientProfile 
 };
 
 /**
- * Get patient's therapist(s) - through sessions
+ * Retrieves all unique therapists a patient has worked with across all their sessions
  */
 export const getPatientTherapists = async (patientId: string): Promise<Therapist[]> => {
   try {
-    // Get unique therapist IDs from patient's sessions
+    // Find all therapist IDs linked to this patient's sessions
     const { data: sessions, error: sessionError } = await supabase
       .from('session')
       .select('therapist_id')
@@ -44,6 +45,7 @@ export const getPatientTherapists = async (patientId: string): Promise<Therapist
     if (!sessions || sessions.length === 0) return [];
 
     // Get unique therapist IDs
+    // Clean and de-duplicate the IDs to avoid redundant DB queries 
     const therapistIds = Array.from(
       new Set(
         sessions
@@ -54,11 +56,11 @@ export const getPatientTherapists = async (patientId: string): Promise<Therapist
 
     if (therapistIds.length === 0) return [];
 
-    // Fetch therapist details
+    // Fetch full details for those specific therapists 
     const { data: therapists, error: therapistError } = await supabase
       .from('therapist')
       .select('*')
-      .in('user_id', therapistIds);
+      .in('user_id', therapistIds); // Efficiently fetch multiple records by ID list 
 
     if (therapistError) throw therapistError;
     return therapists || [];
@@ -70,6 +72,7 @@ export const getPatientTherapists = async (patientId: string): Promise<Therapist
 
 /**
  * Get patient's upcoming sessions
+ * Fetches sessions scheduled for today or in the future 
  */
 export const getPatientUpcomingSessions = async (patientId: string): Promise<Session[]> => {
   try {
@@ -98,7 +101,7 @@ export const getPatientUpcomingSessions = async (patientId: string): Promise<Ses
 };
 
 /**
- * Get patient's recent sessions
+ * Retrieves the patient's most recent past sessions 
  */
 export const getPatientRecentSessions = async (
   patientId: string, 
@@ -121,7 +124,8 @@ export const getPatientRecentSessions = async (
 };
 
 /**
- * Get patient's active goals (through their sessions)
+ * Finds all goals currently marked as 'active' or 'in progress' 
+ * Goals are linked to sessions, so check all the patient's sessions first 
  */
 export const getPatientActiveGoals = async (patientId: string): Promise<Goal[]> => {
   try {
@@ -154,11 +158,11 @@ export const getPatientActiveGoals = async (patientId: string): Promise<Goal[]> 
 };
 
 /**
- * Get all exercises assigned to patient (through goals)
+ * Multi-step retrieval to find exercises assigned to a patient via specific goals
  */
 export const getPatientAssignedExercises = async (patientId: string): Promise<GoalExercise[]> => {
   try {
-    // 1. Get patient's sessions
+    // Get IDs for all sessions belonging to this patient 
     const { data: sessions, error: sessionError } = await supabase
       .from('session')
       .select('session_id')
@@ -170,7 +174,7 @@ export const getPatientAssignedExercises = async (patientId: string): Promise<Go
     const sessionIds = sessions.map(s => s.session_id).filter(id => id !== null);
     if (sessionIds.length === 0) return [];
 
-    // 2. Get goals for these sessions
+    // 2. Get IDs for all goals associated with those sessions 
     const { data: goals, error: goalError } = await supabase
       .from('goal')
       .select('goal_id')
@@ -182,7 +186,7 @@ export const getPatientAssignedExercises = async (patientId: string): Promise<Go
     const goalIds = goals.map(g => g.goal_id).filter(id => id !== null);
     if (goalIds.length === 0) return [];
 
-    // 3. Get exercises for these goals
+    // 3. Get the specific exercise sets and include full Exercise/Goal details
     const { data: goalExercises, error: exerciseError } = await supabase
       .from('goal_exercise_set')
       .select(`
@@ -237,6 +241,8 @@ export const getPatientSessionExercises = async (patientId: string): Promise<Ses
 
 /**
  * Mark exercise as complete in a session
+ * Updates a specific session_exercise record to mark it as completed
+ * Automatically timestamps the completion 
  */
 export const markExerciseComplete = async (
   sessionId: string,
@@ -251,7 +257,7 @@ export const markExerciseComplete = async (
       })
       .eq('session_id', sessionId)
       .eq('exercise_id', exerciseId)
-      .select()
+      .select() // Returns the updated row 
       .single();
 
     if (error) throw error;
@@ -289,10 +295,12 @@ export const addExerciseNotes = async (
 
 /**
  * Get patient statistics
+ * Calculate progress percentages for the patient dashboard 
+ * calculates completion rates for both high-level goals and individual exercises
  */
 export const getPatientStats = async (patientId: string) => {
   try {
-    // Get session IDs
+    // Get session IDs for filtering sub-queries 
     const { data: sessions, error: sessError } = await supabase
       .from('session')
       .select('session_id')
@@ -304,7 +312,7 @@ export const getPatientStats = async (patientId: string) => {
     // Total sessions
     const totalSessions = sessions?.length || 0;
 
-    // Get goals
+    // Get goal statistics 
     const { data: goals } = await supabase
       .from('goal')
       .select('goal_id, status')
@@ -313,7 +321,7 @@ export const getPatientStats = async (patientId: string) => {
     const totalGoals = goals?.length || 0;
     const completedGoals = goals?.filter(g => g.status === 'completed').length || 0;
 
-    // Get session exercises
+    // Get exercises statistics
     const { data: exercises } = await supabase
       .from('session_exercise')
       .select('completed')
@@ -326,6 +334,7 @@ export const getPatientStats = async (patientId: string) => {
       totalSessions,
       totalGoals,
       completedGoals,
+      // Safety check to avoid division by zero 
       goalCompletionRate: totalGoals ? Math.round((completedGoals / totalGoals) * 100) : 0,
       totalExercises,
       completedExercises,
@@ -333,6 +342,7 @@ export const getPatientStats = async (patientId: string) => {
     };
   } catch (error) {
     console.error('Error calculating patient stats:', error);
+    // Return zeroed statistics on error to prevent UI crashes 
     return {
       totalSessions: 0,
       totalGoals: 0,
