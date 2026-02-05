@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import './PatientDetails.css';
 
+/**
+ * Data Models 
+ * Interfaces define the structure of data used in this component
+ */
+
 // Interface for goal data structure
 interface Goal {
   id: string;
@@ -35,9 +40,12 @@ interface User {
 }
 
 const PatientDetails: React.FC = () => {
+  // Routing hooks for navigation and URL parameter access
   const navigate = useNavigate();
   const location = useLocation();
   const { patientId } = useParams();
+
+  // Component state
   const [user, setUser] = useState<User | null>(null);
   const [patientInfo, setPatientInfo] = useState<PatientInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,7 +53,7 @@ const PatientDetails: React.FC = () => {
   // Get session from navigation state
   const sessionData = location.state?.session;
 
-  // State for patient goals
+  // Initialising patient goals with mock data 
   const [goals] = useState<Goal[]>([
     {
       id: '1',
@@ -61,7 +69,7 @@ const PatientDetails: React.FC = () => {
     }
   ]);
 
-  // State for patient exercises
+  // State for patient exercises with mock data
   const [exercises] = useState<Exercise[]>([
     {
       id: '1',
@@ -87,7 +95,7 @@ const PatientDetails: React.FC = () => {
   ]);
 
   useEffect(() => {
-    // Get user data from localStorage
+    // Authenticate user from localStorage
     const userStr = localStorage.getItem('userData');
     if (userStr) {
       const userData = JSON.parse(userStr);
@@ -115,6 +123,10 @@ const PatientDetails: React.FC = () => {
     setLoading(false);
   }, [navigate, sessionData, patientId]);
 
+  /**
+   * Handlers for user interactions
+   */
+
   // Handle logout button click
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -127,6 +139,7 @@ const PatientDetails: React.FC = () => {
     navigate('/therapist-dashboard');
   };
 
+  // Render loading spinner while auth/data checks complete 
   if (loading) {
     return (
       <div className="loading-container">
@@ -135,6 +148,7 @@ const PatientDetails: React.FC = () => {
     );
   }
 
+  /** UI component */
   return (
     <div className="patient-details-page">
       {/* Navigation Bar */}
