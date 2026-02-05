@@ -4,19 +4,26 @@ import supabaseAuthService from '../../services/supabaseAuthService';
 import { supabase } from '../../services/supabaseClient';
 import './Auth.css';
 
+/**
+ * Handles user Authentication and redirects users to specific dashboards based on their role 
+ */
+
 const Login: React.FC = () => {
   const navigate = useNavigate();
   
-  // State for login form
+  // State for login form - track input values for username and password 
   const [formData, setFormData] = useState({
-    username: '',  // Can be username or email
+    username: '',  
     password: ''
   });
   
+  // Stores error messages for UI display 
   const [error, setError] = useState('');
+
+  // Controls the submission/spinner state
   const [loading, setLoading] = useState(false);
 
-  // Handle input changes
+  // Handle input changes - updates formData state
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
@@ -26,6 +33,10 @@ const Login: React.FC = () => {
   };
 
 
+  /**
+   * Process the login form submission 
+   */
+  
 // Handle form submission
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
@@ -41,7 +52,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     console.log(' Login response:', response);
 
     if (response.success) {
-      console.log('✅ Login successful! User:', response.user);
+      console.log(' Login successful! User:', response.user);
     
       // Save user data to localStorage
       localStorage.setItem('userData', JSON.stringify(response.user));
@@ -49,17 +60,19 @@ const handleSubmit = async (e: React.FormEvent) => {
       // Normalize role (prevents issues like "Therapist" or "therapist ")
       const userRole = (response.user?.role || '').trim().toLowerCase();
     
-      console.log('✅ ROLE USED FOR REDIRECT:', userRole);
+      console.log(' ROLE USED FOR REDIRECT:', userRole);
     
+      // Map roles to their respective dashboard routes 
       const roleToPath: Record<string, string> = {
         therapist: '/therapist-dashboard',
         patient: '/patient-dashboard',
         parent_carer: '/parent-dashboard',
       };
     
+      // Redirect user 
       navigate(roleToPath[userRole] ?? '/', { replace: true });
     } else {
-      console.log('❌ Login failed:', response.message);
+      console.log(' Login failed:', response.message);
       setError(response.message || 'Login failed');
     }    
     
@@ -70,6 +83,8 @@ const handleSubmit = async (e: React.FormEvent) => {
     setLoading(false);
   }
 };
+
+/** UI components */
   return (
     <div className="auth-container">
       <div className="container">
