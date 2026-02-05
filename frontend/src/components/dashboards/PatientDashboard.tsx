@@ -9,6 +9,12 @@ import {
 import { Session, Therapist } from '../../services/supabaseTherapistService';
 import '../../components/dashboards/TherapistDashboard.css';
 
+/**
+ * Provides a high-level overview for patients, including their session notes, 
+ * upcoming appointments, and navigation to other patient-specific tools 
+ */
+
+// State hooks 
 const PatientDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<PatientProfile | null>(null);
@@ -17,12 +23,13 @@ const PatientDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Read userData saved from Login.tsx
+  // Retrieve session data stored during login process 
   const userDataString = localStorage.getItem('userData');
   const userData = userDataString ? JSON.parse(userDataString) : null;
 
   useEffect(() => {
     // If not logged in
+    // Ensures only users with the 'patient; role can access this route
     if (!userData) {
       navigate('/login', { replace: true });
       return;
@@ -41,9 +48,11 @@ const PatientDashboard: React.FC = () => {
     }
 
     loadDashboardData();
-  
   }, [navigate]);
 
+  /**
+   * Fetches all necessary dashboard data from Supabase services 
+   */
   const loadDashboardData = async () => {
     try {
       setLoading(true);
@@ -54,7 +63,7 @@ const PatientDashboard: React.FC = () => {
       
       console.log('Loading dashboard for patient user_id:', userId);
   
-      // Load patient profile
+      // Fetch Profile first to ensure user exists in the patient table 
       const profileData = await getPatientProfile(userId);
   
       if (!profileData) {
@@ -84,11 +93,16 @@ const PatientDashboard: React.FC = () => {
     }
   };
 
+  /**
+   * Clears local session and redirects to login 
+   */
+
   const handleLogout = () => {
     localStorage.removeItem('userData');
     navigate('/login', { replace: true });
   };
 
+  // Formatting helpers 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -115,6 +129,8 @@ const PatientDashboard: React.FC = () => {
     return timeString.substring(0, 5);
   };
 
+  // Render logic 
+  /** UI components */
   if (loading) {
     return (
       <div className="dashboard-container">
