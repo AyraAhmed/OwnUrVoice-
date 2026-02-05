@@ -4,7 +4,7 @@ import { getTherapistSessions, searchPatientByEmail, createSessionForPatient } f
 import type { Session } from '../../services/supabaseTherapistService';
 import './TherapistDashboard.css';
 
-// Interface for user data structure 
+// Interface for representing the authenticated user's structure
 interface User {
   username: string;
   firstName: string;
@@ -14,6 +14,7 @@ interface User {
   id?: string;
 }
 
+// UI & Data state 
 const TherapistDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
@@ -21,7 +22,7 @@ const TherapistDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Modal states
+  // Modal & Form state
   const [showModal, setShowModal] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -34,6 +35,9 @@ const TherapistDashboard: React.FC = () => {
   const [sessionType, setSessionType] = useState('Initial Assessment');
   const [location, setLocation] = useState('');
 
+  /**
+   * Initial effect to authorise user and trigger data loading 
+   */
   useEffect(() => {
     // Get user from localStorage
     const userStr = localStorage.getItem('userData');
@@ -41,7 +45,7 @@ const TherapistDashboard: React.FC = () => {
       const userData = JSON.parse(userStr);
       setUser(userData);
       
-      // Check if user is a therapist
+      // Check if user is a therapist and redirect if not a therapist 
       const userRole = userData.user_role || userData.role;
       if (userRole !== 'therapist') {
         navigate('/patient-dashboard');
@@ -51,12 +55,14 @@ const TherapistDashboard: React.FC = () => {
       // Load real sessions from database
       loadSessions(userData);
     } else {
-      navigate('/login');
+      navigate('/login'); // redirect to login if no user data found 
       return;
     }
   }, [navigate]);
 
-  // Load sessions from database
+  /**
+   * Fetches the list of sessions associated with the current therapist
+   */
   const loadSessions = async (userData: any) => {
     try {
       setLoading(true);
@@ -74,19 +80,30 @@ const TherapistDashboard: React.FC = () => {
     }
   };
 
-  // Handle logout
+ /**
+  * Clears session storage and redirects to login page 
+  */
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
     navigate('/login');
   };
 
-  // Handle 'View' button click
+  /** 
+   * Handle 'View' button click
+   * Navigates to a specific patient's detail page 
+   */
+
   const handleViewPatient = (session: Session) => {
     navigate(`/therapist/patient/${session.patient_id}`, { state: { session } });
   };
 
-  // Handle linking existing patient
+  /**
+   * Handle linking existing patient
+   * Linking an existing patient to the therapist via email 
+   * Validates email, checks for patient existence, and creates the first session
+   */
+
   const handleLinkPatient = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -108,7 +125,7 @@ const TherapistDashboard: React.FC = () => {
     try {
       setFormLoading(true);
 
-      // Search for patient by email
+      // Verify if patient exists in the system
       const patient = await searchPatientByEmail(searchEmail);
 
       if (!patient) {
@@ -116,7 +133,7 @@ const TherapistDashboard: React.FC = () => {
         return;
       }
 
-      // Create session for this patient
+      // Link therapist and patient by creating an initial session
       const userId = user?.user_id || user?.id;
       await createSessionForPatient(
         patient.user_id,
@@ -131,19 +148,19 @@ const TherapistDashboard: React.FC = () => {
 
       setSuccessMessage(`Successfully linked ${patient.first_name} ${patient.last_name}!`);
       
-      // Clear form
+      // Reset form on success
       setSearchEmail('');
       setSessionDate(new Date().toISOString().split('T')[0]);
       setSessionTime('09:00');
       setSessionType('Initial Assessment');
       setLocation('');
 
-      // Reload sessions to show new patient
+      // Refresh the dashboard list 
       if (user) {
         await loadSessions(user);
       }
 
-      // Close modal after 2 seconds
+      // Auto-close modal after 2 seconds
       setTimeout(() => {
         setShowModal(false);
         setSuccessMessage(null);
@@ -157,7 +174,11 @@ const TherapistDashboard: React.FC = () => {
     }
   };
 
-  // Format date for display
+  /**
+   * Formatting helpers 
+   */
+
+   // Format date for display
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -183,6 +204,7 @@ const TherapistDashboard: React.FC = () => {
     );
   }
 
+   /** UI Components */
   return (
     <div className="therapist-dashboard">
       {/* Navigation Bar */}
