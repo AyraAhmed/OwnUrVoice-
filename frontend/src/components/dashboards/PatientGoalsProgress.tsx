@@ -10,8 +10,14 @@ import {
 import { Goal, SessionExercise } from '../../services/supabaseTherapistService';
 import '../../components/dashboards/TherapistDashboard.css';
 
+/**
+ * Provides a view for patients to track their therapy milestones and daily tasks 
+ */
+
 const PatientGoalsProgress: React.FC = () => {
   const navigate = useNavigate();
+
+  // State Definition
   const [profile, setProfile] = useState<PatientProfile | null>(null);
   const [activeGoals, setActiveGoals] = useState<Goal[]>([]);
   const [exercises, setExercises] = useState<SessionExercise[]>([]);
@@ -19,9 +25,13 @@ const PatientGoalsProgress: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Retrieve session data from local storage 
   const userDataString = localStorage.getItem('userData');
   const userData = userDataString ? JSON.parse(userDataString) : null;
 
+  /**
+   * Validates user role and initiates data fetch
+   */
   useEffect(() => {
     if (!userData || userData.user_role !== 'patient') {
       navigate('/login');
@@ -31,6 +41,9 @@ const PatientGoalsProgress: React.FC = () => {
     loadGoalsData();
   }, []);
 
+  /**
+   * Fetches profile, goals, and exercises form Supabase services
+   */
   const loadGoalsData = async () => {
     try {
       setLoading(true);
@@ -45,6 +58,7 @@ const PatientGoalsProgress: React.FC = () => {
 
       setProfile(profileData);
 
+      // Fetch goals and exercises in parallel for better performance
       const [goalsData, exercisesData] = await Promise.all([
         getPatientActiveGoals(profileData.user_id),
         getPatientSessionExercises(profileData.user_id)
@@ -60,26 +74,40 @@ const PatientGoalsProgress: React.FC = () => {
     }
   };
 
+  /**
+   * Updates exercise status in the DB and refreshes local state
+   */
+
   const handleMarkComplete = async (sessionId: string, exerciseId: string) => {
     try {
       await markExerciseComplete(sessionId, exerciseId);
       setSuccessMessage('Exercise marked as complete!');
       
+      // Refresh the exercise list to reflect the 'completed' status UI
       if (profile) {
         const exercisesData = await getPatientSessionExercises(profile.user_id);
         setExercises(exercisesData);
       }
 
+      // Clear success message after 3 seconds 
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
       setError(err.message || 'Failed to mark exercise as complete');
     }
   };
 
+  /**
+   * Clears session and redirects to login 
+   */
+
   const handleLogout = () => {
     localStorage.removeItem('userData');
     navigate('/login');
   };
+
+  /**
+   * Helper to format ISO strings into MM/DD/YY
+   */
 
   const formatShortDate = (dateString: string) => {
     if (!dateString) return 'N/A';
@@ -91,6 +119,7 @@ const PatientGoalsProgress: React.FC = () => {
     });
   };
 
+  // Rendering logic 
   if (loading) {
     return (
       <div className="dashboard-container">
@@ -103,6 +132,7 @@ const PatientGoalsProgress: React.FC = () => {
     );
   }
 
+  /** UI components  */
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
       {/* Sidebar */}
