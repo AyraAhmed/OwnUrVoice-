@@ -3,12 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { createPatientWithSession } from '../../services/supabaseTherapistService';
 import '../../components/dashboards/TherapistDashboard.css';
 
+/**
+ * Allows authorised therapists to register new patients and automatically
+ * initialises their first session 
+ */
 const AddPatient: React.FC = () => {
   const navigate = useNavigate();
+
+  // UI state management
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // form state
   const [formData, setFormData] = useState({
     username: '',
     firstName: '',
@@ -20,13 +27,16 @@ const AddPatient: React.FC = () => {
     preferredContactMethod: 'email',
   });
 
-  // Get logged in therapist data
+  // Authentication & authorisation 
+
+  // Retrieve session data from local storage 
   const userDataString = localStorage.getItem('userData');
   const userData = userDataString ? JSON.parse(userDataString) : null;
 
   // Check multiple possible role field names
   const userRole = userData?.user_role || userData?.role || userData?.userRole;
 
+  // Redirect if user is not logged in or is not a therapist 
   if (!userData || userRole !== 'therapist') {
     console.log('Not authorised - redirecting to login');
     console.log('User data:', userData);
@@ -36,7 +46,10 @@ const AddPatient: React.FC = () => {
   }
 
 
-
+/**
+ * Universal change handler for all input types 
+ * Updates specific keys in formData while preserving others 
+ */
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
@@ -44,6 +57,10 @@ const AddPatient: React.FC = () => {
     });
   };
 
+  /**
+   * Form Submission Handler 
+   * Validates input, formats data for the DB, and handles the API call
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -82,6 +99,7 @@ const AddPatient: React.FC = () => {
     try {
       setLoading(true);
 
+      // Map frontend CamelCase to backend snake_case
       const patientData = {
         username: formData.username,
         first_name: formData.firstName,
@@ -93,13 +111,14 @@ const AddPatient: React.FC = () => {
         preferred_contact_method: formData.preferredContactMethod,
       };
 
-      // Fix: use correct user_id field
+      // Retrieve correct user_id from session_data 
       const userId = userData.user_id || userData.id;
+
       const result = await createPatientWithSession(patientData, userId);
 
       setSuccessMessage(`Patient ${formData.firstName} ${formData.lastName} added successfully!`);
       
-      // Clear form
+      // Reset form to initial state on success 
       setFormData({
         username: '',
         firstName: '',
@@ -111,6 +130,7 @@ const AddPatient: React.FC = () => {
         preferredContactMethod: 'email',
       });
 
+      // Visual feedback before navigating away
       // Redirect after 2 seconds
       setTimeout(() => {
         navigate('/therapist/patients');
@@ -128,8 +148,10 @@ const AddPatient: React.FC = () => {
     navigate('/therapist-dashboard');
   };
 
+  /** UI components */
   return (
     <div className="dashboard-container">
+      
       {/* Top Navigation */}
       <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
         <div className="container-fluid">
@@ -186,6 +208,7 @@ const AddPatient: React.FC = () => {
             <div className="card">
               <div className="card-body">
                 <form onSubmit={handleSubmit}>
+
                   {/* Personal Information */}
                   <div className="mb-4">
                     <h5 className="card-title mb-3">
