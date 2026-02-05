@@ -4,6 +4,9 @@ import { getTherapistPatients, Patient } from '../../services/supabaseTherapistS
 import './TherapistDashboard.css';
 import './PatientDetails.css';
 
+/**
+ * Represents the logged-in user session structure 
+ */
 interface User {
   username: string;
   firstName: string;
@@ -15,6 +18,8 @@ interface User {
 
 const TherapistPatients: React.FC = () => {
   const navigate = useNavigate();
+
+  // State Hooks 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,6 +27,10 @@ const TherapistPatients: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
 
+  /**
+   * Effect: Authentication & Authorisation 
+   * Redirects to login if user is not authenticated or not a therapist 
+   */
   useEffect(() => {
     const userDataString = localStorage.getItem('userData');
     const userData = userDataString ? JSON.parse(userDataString) : null;
@@ -30,6 +39,8 @@ const TherapistPatients: React.FC = () => {
       navigate('/login');
       return;
     }
+
+    // Check multiple possible key names for roles to ensure compatibility 
 
     const userRole = userData?.user_role || userData?.role || userData?.userRole;
 
@@ -43,8 +54,11 @@ const TherapistPatients: React.FC = () => {
     loadPatients(userData);
   }, [navigate]);
 
+  /**
+   * Effect: Client-side Search Filtering 
+   * Filters the master patient list based on the searchTerm
+   */
   useEffect(() => {
-    // Filter patients based on search term
     if (searchTerm.trim() === '') {
       setFilteredPatients(patients);
     } else {
@@ -57,6 +71,9 @@ const TherapistPatients: React.FC = () => {
     }
   }, [searchTerm, patients]);
 
+  /**
+   * Fetches the list of patients from Supabase 
+   */
   const loadPatients = async (userData: any) => {
     try {
       setLoading(true);
@@ -71,6 +88,7 @@ const TherapistPatients: React.FC = () => {
     }
   };
 
+  // Event Handlers 
   const handleLogout = () => {
     localStorage.removeItem('userData');
     navigate('/login');
@@ -80,6 +98,10 @@ const TherapistPatients: React.FC = () => {
     navigate('/therapist-dashboard');
   };
 
+  // Utility Functions 
+  /**
+   * Formates ISO date string to British format (e.g., 01 Jan 2026)
+   */
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -89,6 +111,10 @@ const TherapistPatients: React.FC = () => {
       year: 'numeric' 
     });
   };
+
+  /**
+   * Calculates current age based on Date of Birth
+   */
 
   const calculateAge = (dob: string) => {
     if (!dob) return 'N/A';
@@ -102,6 +128,8 @@ const TherapistPatients: React.FC = () => {
     return age;
   };
 
+  // Render logic 
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -110,6 +138,8 @@ const TherapistPatients: React.FC = () => {
     );
   }
 
+  /** UI Components */
+  
   return (
     <div className="patient-details-page">
       {/* Navigation Bar */}
