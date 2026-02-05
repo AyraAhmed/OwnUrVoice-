@@ -1,5 +1,10 @@
 import { supabase  } from "./supabaseClient";
 
+/*
+* Entity definitions 
+
+* These interfaces define the shape of data coming to/from Supabase tables 
+*/
 export interface Patient {
     user_id: string;
     username: string;
@@ -63,7 +68,7 @@ export interface Goal {
 
 export interface Exercise {
     exercise_id: string; 
-    created_by: string; 
+    created_by: string;  // Therapist ID
     title: string; 
     description: string; 
     difficulty_level: string; 
@@ -89,9 +94,13 @@ export interface GoalExercise {
     goal?: Goal;
 }
 
+
 /**
+ * Data access methods 
+ 
+ * Retrieves a list of unique patients associated with a specific therapist
  * Get all patients who have session with this therapist 
- */
+*/
 
 export const getTherapistPatients = async (therapistId: string): Promise<Patient[]> => {
     try {
@@ -106,7 +115,7 @@ export const getTherapistPatients = async (therapistId: string): Promise<Patient
   
       // Get unique patient IDs and filter out any nulls
       const patientIds = Array.from(
-        new Set(
+        new Set( // ensure we don't fetch the same patient twice 
           sessions
             .map(s => s.patient_id)
             .filter(id => id !== null && id !== undefined)
@@ -131,8 +140,9 @@ export const getTherapistPatients = async (therapistId: string): Promise<Patient
   };
 
 /**
+ * Fetches recent sessions for a therapist, including basic patient info
  * Get recent sessions for a therapist 
- */
+*/
 
 export const getTherapistSessions = async (therapistId: string, limit: number = 10): Promise<Session[]> => {
     try{
@@ -150,9 +160,10 @@ export const getTherapistSessions = async (therapistId: string, limit: number = 
         throw error;
     }
 };
+
 /**
  * Create a new patient AND create first session to link them to therapist 
- */
+*/
 
 export const createPatientWithSession = async (patientData: {
   username: string;
@@ -165,12 +176,13 @@ export const createPatientWithSession = async (patientData: {
   preferred_contact_method?: string;
 }, therapistId: string): Promise<{ patient: Patient; session: Session }> => {
   try {
-    // Generate a real UUID v4 (using crypto.randomUUID if available, or fallback)
+    // Generate a real unique ID 
+    // crypto API if available, otherwise falls back to a math-based generator
     const generateUUID = (): string => {
       if (typeof crypto !== 'undefined' && crypto.randomUUID) {
         return crypto.randomUUID();
       }
-      // Fallback UUID generation
+  
       return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         const r = Math.random() * 16 | 0;
         const v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -182,11 +194,11 @@ export const createPatientWithSession = async (patientData: {
     
     console.log('Creating patient with temp UUID:', tempUserId);
     
-    // Create patient
+    // Insert the patient record 
     const { data: patient, error: patientError } = await supabase
       .from('patient')
       .insert([{
-        user_id: tempUserId,  // Real UUID format
+        user_id: tempUserId,
         username: patientData.username,
         email: patientData.email,
         first_name: patientData.first_name,
@@ -208,7 +220,7 @@ export const createPatientWithSession = async (patientData: {
 
     console.log('Patient created successfully:', patient);
 
-    // Create initial session to link patient to therapist
+    // Create the linking session 
     const today = new Date();
     const { data: session, error: sessionError } = await supabase
       .from('session')
@@ -238,9 +250,9 @@ export const createPatientWithSession = async (patientData: {
   }
 };
 
-/**
- * Get all sessions for a specific patient 
- */
+/** 
+ * Fetches history of sessions for a specific patient 
+*/
 
 export const getPatientSessions = async (patientId: string): Promise<Session[]> => {
     try{
@@ -259,8 +271,8 @@ export const getPatientSessions = async (patientId: string): Promise<Session[]> 
 };
 
 /**
- * Get all goals for a patient (through their sessions)
- */
+ * Retrieves all goals ever set for a patient across all sessions
+*/
 
 export const getPatientGoals = async (patientId: string): Promise<Goal[]> => {
     try{
@@ -292,7 +304,7 @@ export const getPatientGoals = async (patientId: string): Promise<Goal[]> => {
 
 /**
  * Get all exercises assigned to a patient's goals 
- */
+*/
 
 export const getPatientExercises = async (patientId: string): Promise<GoalExercise[]> => {
     try {
@@ -339,8 +351,8 @@ export const getPatientExercises = async (patientId: string): Promise<GoalExerci
   };
 
 /**
- * Get exercises completed in patient's sessions
- */
+ * Fetches completed exercises specific to patient's session
+*/
 export const getPatientSessionExercises = async (patientId: string): Promise<SessionExercise[]> => {
     try {
       // Get patient's sessions
@@ -374,7 +386,7 @@ export const getPatientSessionExercises = async (patientId: string): Promise<Ses
   
   /**
    * Create a new session
-   */
+  */
   export const createSession = async (sessionData: {
     patient_id: string;
     therapist_id: string;
@@ -401,7 +413,7 @@ export const getPatientSessionExercises = async (patientId: string): Promise<Ses
   
   /**
    * Create a new goal for a session
-   */
+  */
   export const createGoal = async (goalData: {
     session_id: string;
     goal_description: string;
@@ -427,7 +439,7 @@ export const getPatientSessionExercises = async (patientId: string): Promise<Ses
   
   /**
    * Get all exercises created by therapist
-   */
+  */
   export const getTherapistExercises = async (therapistId: string): Promise<Exercise[]> => {
     try {
       const { data, error } = await supabase
@@ -446,7 +458,7 @@ export const getPatientSessionExercises = async (patientId: string): Promise<Ses
   
   /**
    * Create a new exercise
-   */
+  */
   export const createExercise = async (exerciseData: {
     created_by: string;
     title: string;
@@ -470,8 +482,8 @@ export const getPatientSessionExercises = async (patientId: string): Promise<Ses
   };
   
   /**
-   * Assign exercise to a goal
-   */
+   * Assign exercise to a goal (Links an exercise to a goal)
+  */
   export const assignExerciseToGoal = async (
     goalId: string,
     exerciseId: string
@@ -491,9 +503,10 @@ export const getPatientSessionExercises = async (patientId: string): Promise<Ses
     }
   };
 
-    /**
- * Search for patient by email
- */
+/**
+ * Search for a patient by email. 
+ * Useful for checking if a user exists before creating a duplicate 
+*/
 export const searchPatientByEmail = async (email: string): Promise<Patient | null> => {
   try {
     const { data, error } = await supabase
@@ -511,7 +524,7 @@ export const searchPatientByEmail = async (email: string): Promise<Patient | nul
 };
 
 /**
- * Create session for existing patient (links therapist to patient)
+ * Create session for existing patient (Links therapist to an existing patient)
  */
 export const createSessionForPatient = async (
   patientId: string,
