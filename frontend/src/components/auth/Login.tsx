@@ -9,7 +9,7 @@ import './Auth.css';
  */
 
 const Login: React.FC = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // Hook for programmatic redirection after login
   
   // State for login form - track input values for username and password 
   const [formData, setFormData] = useState({
@@ -26,8 +26,8 @@ const Login: React.FC = () => {
   // Handle input changes - updates formData state
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
+      ...formData,  // Prevents losing password while typing username
+      [e.target.name]: e.target.value // update only the field matching the input's 'name' attribute
     });
     setError(''); // Clear error when user types
   };
@@ -39,9 +39,9 @@ const Login: React.FC = () => {
   
 // Handle form submission
 const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError('');
-  setLoading(true);
+  e.preventDefault(); // Prevents the browser from reloading the page
+  setError(''); // Reset previous errors 
+  setLoading(true); // Trigger UI loading state (e.g. a spinner)
 
   try {
     console.log(' Attempting login with username:', formData.username);
@@ -54,7 +54,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     if (response.success) {
       console.log(' Login successful! User:', response.user);
     
-      // Save user data to localStorage
+      // Save session data so the user stays logged in after a refresh 
       localStorage.setItem('userData', JSON.stringify(response.user));
     
       // Normalize role (prevents issues like "Therapist" or "therapist ")
@@ -69,7 +69,7 @@ const handleSubmit = async (e: React.FormEvent) => {
         parent_carer: '/parent-dashboard',
       };
     
-      // Redirect user 
+      // Redirect user- moves user to dashboard 
       navigate(roleToPath[userRole] ?? '/', { replace: true });
     } else {
       console.log(' Login failed:', response.message);
@@ -78,9 +78,10 @@ const handleSubmit = async (e: React.FormEvent) => {
     
   } catch (err: any) {
     console.error(' Login error:', err);
+    // Catches network failures or unexpected crashes 
     setError(err.message || 'An error occurred during login');
   } finally {
-    setLoading(false);
+    setLoading(false); // Ensure loading stops regardless of success or failure
   }
 };
 
