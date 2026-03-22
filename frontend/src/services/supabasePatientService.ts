@@ -71,13 +71,11 @@ export const getPatientTherapists = async (patientId: string): Promise<Therapist
 };
 
 /**
- * Get patient's upcoming sessions
- * Fetches sessions scheduled for today or in the future 
+ * Get ALL patient sessions (past and future)
+ * so the patient can filter by past/upcoming/this week themselves
  */
 export const getPatientUpcomingSessions = async (patientId: string): Promise<Session[]> => {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    
     const { data, error } = await supabase
       .from('session')
       .select(`
@@ -89,13 +87,12 @@ export const getPatientUpcomingSessions = async (patientId: string): Promise<Ses
         )
       `)
       .eq('patient_id', patientId)
-      .gte('session_date', today)
-      .order('session_date', { ascending: true });
+      .order('session_date', { ascending: false });
 
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error fetching upcoming sessions:', error);
+    console.error('Error fetching sessions:', error);
     throw error;
   }
 };
