@@ -14,48 +14,53 @@ interface User {
   id?: string;
 }
 
-// UI & Data state 
+// UI & Data state
 const TherapistDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
+  // Session filter state
+  const [sessionFilter, setSessionFilter] = useState('all');
+
   // Modal & Form state
   const [showModal, setShowModal] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  
+
   // Form data for linking patient
   const [searchEmail, setSearchEmail] = useState('');
   const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0]);
-  const [sessionTime, setSessionTime] = useState('09:00');
+  const [sessionTime, setSessionTime] = useState(() => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  });
   const [sessionType, setSessionType] = useState('Initial Assessment');
   const [location, setLocation] = useState('');
 
   /**
-   * Initial effect to authorise user and trigger data loading 
+   * Initial effect to authorise user and trigger data loading
    */
   useEffect(() => {
-    // Get user from localStorage
     const userStr = localStorage.getItem('userData');
     if (userStr) {
       const userData = JSON.parse(userStr);
       setUser(userData);
-      
-      // Check if user is a therapist and redirect if not a therapist 
+
       const userRole = userData.user_role || userData.role;
       if (userRole !== 'therapist') {
         navigate('/patient-dashboard');
         return;
       }
 
-      // Load real sessions from database
       loadSessions(userData);
     } else {
-      navigate('/login'); // redirect to login if no user data found 
+      navigate('/login');
       return;
     }
   }, [navigate]);
@@ -67,10 +72,10 @@ const TherapistDashboard: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const userId = userData.user_id || userData.id;
       const sessionsData = await getTherapistSessions(userId);
-      
+
       setSessions(sessionsData);
     } catch (err: any) {
       console.error('Error loading sessions:', err);
@@ -80,30 +85,27 @@ const TherapistDashboard: React.FC = () => {
     }
   };
 
- /**
-  * Clears session storage and redirects to login page 
-  */
+  /**
+   * Clears session storage and redirects to login page
+   */
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
     navigate('/login');
   };
 
-  /** 
+  /**
    * Handle 'View' button click
-   * Navigates to a specific patient's detail page 
+   * Navigates to a specific patient's detail page
    */
-
   const handleViewPatient = (session: Session) => {
     navigate(`/therapist/patient/${session.patient_id}`, { state: { session } });
   };
 
   /**
    * Handle linking existing patient
-   * Linking an existing patient to the therapist via email 
    * Validates email, checks for patient existence, and creates the first session
    */
-
   const handleLinkPatient = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -120,6 +122,26 @@ const TherapistDashboard: React.FC = () => {
     if (!emailRegex.test(searchEmail)) {
       setFormError('Please enter a valid email address');
       return;
+    }
+
+    // Time validation — prevent booking a past time on today's date
+    const today = new Date().toISOString().split('T')[0];
+    if (sessionDate === today) {
+      const now = new Date();
+      const currentHours = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const [selectedHours, selectedMinutes] = sessionTime.split(':').map(Number);
+
+      if (
+        selectedHours < currentHours ||
+        (selectedHours === currentHours && selectedMinutes < currentMinutes)
+      ) {
+        const formattedCurrentTime = `${String(currentHours).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}`;
+        setFormError(
+          `You cannot book a session in the past. Current time is ${formattedCurrentTime}. Please select a later time.`
+        );
+        return;
+      }
     }
 
     try {
@@ -140,27 +162,26 @@ const TherapistDashboard: React.FC = () => {
         userId!,
         {
           session_date: sessionDate,
-          session_time: sessionTime + ':00', // Add seconds
+          session_time: sessionTime + ':00',
           session_type: sessionType,
           location: location || 'To be determined'
         }
       );
 
       setSuccessMessage(`Successfully linked ${patient.first_name} ${patient.last_name}!`);
-      
+
       // Reset form on success
       setSearchEmail('');
       setSessionDate(new Date().toISOString().split('T')[0]);
-      setSessionTime('09:00');
+      const nowReset = new Date();
+      setSessionTime(`${String(nowReset.getHours()).padStart(2, '0')}:${String(nowReset.getMinutes()).padStart(2, '0')}`);
       setSessionType('Initial Assessment');
       setLocation('');
 
-      // Refresh the dashboard list 
       if (user) {
         await loadSessions(user);
       }
 
-      // Auto-close modal after 2 seconds
       setTimeout(() => {
         setShowModal(false);
         setSuccessMessage(null);
@@ -175,24 +196,71 @@ const TherapistDashboard: React.FC = () => {
   };
 
   /**
-   * Formatting helpers 
+   * Format date for display in GB format
    */
-
-   // Format date for display
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'numeric',
-      day: 'numeric',
+    const date = new Date(dateString + 'T00:00:00Z');
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric'
     });
   };
 
-  // Format time for display
+  /**
+   * Format time for display
+   */
   const formatTime = (timeString: string) => {
     if (!timeString) return 'N/A';
-    return timeString.substring(0, 5); // Get HH:MM from HH:MM:SS
+    return timeString.substring(0, 5);
+  };
+
+  /**
+   * Returns minimum allowed time for session booking.
+   * If booking today, minimum is the current time.
+   * If booking a future date, any time is allowed.
+   */
+  const getMinTime = () => {
+    const today = new Date().toISOString().split('T')[0];
+    if (sessionDate === today) {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+    return '00:00';
+  };
+
+  /**
+   * Filters sessions based on the selected dropdown option.
+   * - all: shows all sessions
+   * - this_week: shows sessions from Monday to Sunday of the current week
+   * - past: shows sessions before today
+   * - upcoming: shows sessions from today onwards
+   */
+  const getFilteredSessions = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get start (Monday) and end (Sunday) of current week
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + 1);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+    return sessions.filter(session => {
+      const sessionDate = new Date(session.session_date + 'T00:00:00Z');
+
+      if (sessionFilter === 'this_week') {
+        return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
+      } else if (sessionFilter === 'past') {
+        return sessionDate < today;
+      } else if (sessionFilter === 'upcoming') {
+        return sessionDate >= today;
+      }
+      return true; // 'all' — show everything
+    });
   };
 
   // Loading spinner
@@ -204,13 +272,14 @@ const TherapistDashboard: React.FC = () => {
     );
   }
 
-   /** UI Components */
+  /** UI Components */
   return (
     <div className="therapist-dashboard">
+
       {/* Navigation Bar */}
       <nav className="dashboard-nav">
         <div className="nav-content">
-          <h1 className="brand">OwnUrVoice</h1>
+          <img src="/logo.jpg" alt="OwnUrVoice Logo" className="nav-logo" />
           <div className="nav-right">
             <span className="welcome-text">Welcome, {user?.firstName} {user?.lastName}</span>
             <button onClick={handleLogout} className="logout-btn">Logout</button>
@@ -220,6 +289,7 @@ const TherapistDashboard: React.FC = () => {
 
       {/* Main Content */}
       <div className="dashboard-container">
+
         {/* Left Sidebar */}
         <aside className="sidebar">
           <div className="sidebar-item active">
@@ -232,7 +302,7 @@ const TherapistDashboard: React.FC = () => {
             <span>Dashboard</span>
           </div>
 
-          <div className="sidebar-item">
+          <div className="sidebar-item" onClick={() => navigate('/therapist/patients')} style={{ cursor: 'pointer' }}>
             <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
               <circle cx="12" cy="7" r="4"/>
@@ -240,7 +310,7 @@ const TherapistDashboard: React.FC = () => {
             <span>Patient Details</span>
           </div>
 
-          <div className="sidebar-item">
+          <div className="sidebar-item" onClick={() => navigate('/therapist/goals')} style={{ cursor: 'pointer' }}>
             <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <circle cx="12" cy="12" r="10"/>
               <path d="M12 6v6l4 2"/>
@@ -248,7 +318,7 @@ const TherapistDashboard: React.FC = () => {
             <span>Goals & Exercises</span>
           </div>
 
-          <div className="sidebar-item">
+          <div className="sidebar-item" onClick={() => navigate('/therapist/resources')} style={{ cursor: 'pointer' }}>
             <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
@@ -266,7 +336,7 @@ const TherapistDashboard: React.FC = () => {
 
           {/* Quick Actions */}
           <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', padding: '0 20px' }}>
-            <button 
+            <button
               onClick={() => setShowModal(true)}
               style={{
                 padding: '12px 24px',
@@ -285,8 +355,8 @@ const TherapistDashboard: React.FC = () => {
             >
               + Link Existing Patient
             </button>
-            
-            <button 
+
+            <button
               onClick={() => navigate('/therapist/patients')}
               style={{
                 padding: '12px 24px',
@@ -316,11 +386,45 @@ const TherapistDashboard: React.FC = () => {
 
           {/* Sessions Card */}
           <div className="sessions-card">
-            <h3 className="card-title">Recent Sessions</h3>
-            
+
+            {/* Card header with filter dropdown */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px'
+            }}>
+              <h3 className="card-title" style={{ margin: 0 }}>Recent Sessions</h3>
+
+              {/* Session filter dropdown */}
+              <select
+                value={sessionFilter}
+                onChange={e => setSessionFilter(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #dee2e6',
+                  fontSize: '14px',
+                  color: '#1a1a2e',
+                  cursor: 'pointer',
+                  backgroundColor: '#fff'
+                }}
+              >
+                <option value="all">All Sessions</option>
+                <option value="this_week">This Week</option>
+                <option value="past">Past Appointments</option>
+                <option value="upcoming">Upcoming</option>
+              </select>
+            </div>
+
             {sessions.length === 0 ? (
               <div style={{ padding: '40px', textAlign: 'center', color: '#6c757d' }}>
                 <p>No sessions yet. Click "Link Existing Patient" to get started!</p>
+              </div>
+            ) : getFilteredSessions().length === 0 ? (
+              // Show when filter returns no results
+              <div style={{ padding: '40px', textAlign: 'center', color: '#6c757d' }}>
+                <p>No sessions found for this filter.</p>
               </div>
             ) : (
               <div className="sessions-table">
@@ -333,9 +437,9 @@ const TherapistDashboard: React.FC = () => {
                 </div>
 
                 <div className="table-body">
-                  {sessions.map((session, index) => (
-                    <div 
-                      key={session.session_id} 
+                  {getFilteredSessions().map((session, index) => (
+                    <div
+                      key={session.session_id}
                       className="table-row"
                       style={{ animationDelay: `${index * 0.1}s` }}
                     >
@@ -346,7 +450,7 @@ const TherapistDashboard: React.FC = () => {
                       <div className="td">{formatTime(session.session_time)}</div>
                       <div className="td">{session.session_type || 'Assessment'}</div>
                       <div className="td">
-                        <button 
+                        <button
                           className="view-btn"
                           onClick={() => handleViewPatient(session)}
                         >
@@ -373,11 +477,7 @@ const TherapistDashboard: React.FC = () => {
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Link Existing Patient</h5>
-                <button 
-                  type="button" 
-                  className="btn-close" 
-                  onClick={() => setShowModal(false)}
-                ></button>
+                <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
               </div>
               <div className="modal-body">
                 {formError && (
@@ -392,7 +492,7 @@ const TherapistDashboard: React.FC = () => {
                     <button type="button" className="btn-close" onClick={() => setSuccessMessage(null)}></button>
                   </div>
                 )}
-                
+
                 <div className="alert alert-info">
                   <strong>Note:</strong> The patient must register first before you can link them. Ask your patient to create an account, then enter their email here.
                 </div>
@@ -434,6 +534,7 @@ const TherapistDashboard: React.FC = () => {
                         type="time"
                         className="form-control"
                         value={sessionTime}
+                        min={getMinTime()}
                         onChange={(e) => setSessionTime(e.target.value)}
                         required
                       />
@@ -469,16 +570,16 @@ const TherapistDashboard: React.FC = () => {
                   </div>
 
                   <div className="modal-footer">
-                    <button 
-                      type="button" 
-                      className="btn btn-secondary" 
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
                       onClick={() => setShowModal(false)}
                       disabled={formLoading}
                     >
                       Cancel
                     </button>
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       className="btn btn-primary"
                       disabled={formLoading}
                     >
@@ -511,6 +612,7 @@ const TherapistDashboard: React.FC = () => {
           <p>© 2026 OwnUrVoice. All rights reserved.</p>
         </div>
       </footer>
+
     </div>
   );
 };
