@@ -10,11 +10,9 @@ import { Session, Therapist } from '../../services/supabaseTherapistService';
 import '../../components/dashboards/TherapistDashboard.css';
 
 /**
- * Provides a high-level overview for patients, including their session notes, 
- * upcoming appointments, and navigation to other patient-specific tools 
+ * Provides a high-level overview for patients, including their session notes,
+ * upcoming appointments, and navigation to other patient-specific tools
  */
-
-// State hooks 
 const PatientDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<PatientProfile | null>(null);
@@ -23,22 +21,19 @@ const PatientDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Retrieve session data stored during login process 
+  // Session filter dropdown state
+  const [sessionFilter, setSessionFilter] = useState('all');
+
   const userDataString = localStorage.getItem('userData');
   const userData = userDataString ? JSON.parse(userDataString) : null;
 
   useEffect(() => {
-    // If not logged in
-    // Ensures only users with the 'patient; role can access this route
     if (!userData) {
       navigate('/login', { replace: true });
       return;
     }
-
-    // Role check (you store "role", NOT "user_role")
     const role = (userData.role || '').trim().toLowerCase();
     if (role !== 'patient') {
-      // redirect therapists away from patient dashboard
       if (role === 'therapist') {
         navigate('/therapist-dashboard', { replace: true });
       } else {
@@ -46,43 +41,27 @@ const PatientDashboard: React.FC = () => {
       }
       return;
     }
-
     loadDashboardData();
   }, [navigate]);
 
   /**
-   * Fetches all necessary dashboard data from Supabase services 
+   * Fetches all necessary dashboard data from Supabase services
    */
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       setError(null);
-  
-      // Get the user_id from userData (this is the patient's user_id)
       const userId = userData.user_id || userData.id;
-      
-      console.log('Loading dashboard for patient user_id:', userId);
-  
-      // Fetch Profile first to ensure user exists in the patient table 
       const profileData = await getPatientProfile(userId);
-  
       if (!profileData) {
         setError('Patient profile not found');
         return;
       }
-  
       setProfile(profileData);
-      console.log('Patient profile loaded:', profileData);
-  
-      // Fetch therapists + upcoming sessions using the patient's user_id
       const [therapistsData, sessionsData] = await Promise.all([
         getPatientTherapists(userId),
         getPatientUpcomingSessions(userId)
       ]);
-  
-      console.log('Therapists:', therapistsData);
-      console.log('Sessions:', sessionsData);
-  
       setTherapists(therapistsData);
       setUpcomingSessions(sessionsData);
     } catch (err: any) {
@@ -94,43 +73,77 @@ const PatientDashboard: React.FC = () => {
   };
 
   /**
-   * Clears local session and redirects to login 
+   * Clears local session and redirects to login
    */
-
   const handleLogout = () => {
     localStorage.removeItem('userData');
     navigate('/login', { replace: true });
   };
 
-  // Formatting helpers 
+  /**
+   * Format date in long UK style e.g. Sunday, 18 January 2026
+   */
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    const date = new Date(dateString + 'T00:00:00Z');
+    return date.toLocaleDateString('en-GB', {
       weekday: 'long',
-      month: 'long',
       day: 'numeric',
+      month: 'long',
       year: 'numeric'
     });
   };
 
+  /**
+   * Format date in short UK style e.g. 18/01/2026
+   */
   const formatShortDate = (dateString: string) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'numeric',
-      day: 'numeric',
+    const date = new Date(dateString + 'T00:00:00Z');
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric'
     });
   };
 
+  /**
+   * Format time — trims seconds from HH:MM:SS to HH:MM
+   */
   const formatTime = (timeString: string) => {
     if (!timeString) return 'N/A';
     return timeString.substring(0, 5);
   };
 
-  // Render logic 
-  /** UI components */
+  /**
+   * Filters sessions based on the selected dropdown option.
+   * - all: shows all sessions
+   * - this_week: shows sessions within the current Mon-Sun week
+   * - past: shows sessions before today
+   * - upcoming: shows sessions from today onwards
+   */
+  const getFilteredSessions = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + 1);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+    return upcomingSessions.filter(session => {
+      const sessionDate = new Date(session.session_date + 'T00:00:00Z');
+      if (sessionFilter === 'this_week') {
+        return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
+      } else if (sessionFilter === 'past') {
+        return sessionDate < today;
+      } else if (sessionFilter === 'upcoming') {
+        return sessionDate >= today;
+      }
+      return true;
+    });
+  };
+
   if (loading) {
     return (
       <div className="dashboard-container">
@@ -146,148 +159,98 @@ const PatientDashboard: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      {/* Sidebar */}
-      <div
-        style={{
-          width: '240px',
-          backgroundColor: '#fff',
-          borderRight: '1px solid #dee2e6',
-          padding: '20px 0'
-        }}
-      >
+
+      {/* ── Sidebar ── */}
+      <div style={{
+        width: '240px',
+        backgroundColor: '#fff',
+        borderRight: '1px solid #dee2e6',
+        padding: '20px 0'
+      }}>
         <div style={{ padding: '0 20px', marginBottom: '30px' }}>
-          <h4 style={{ color: '#6366f1', fontWeight: 'bold', margin: 0 }}>OwnUrVoice</h4>
+          <img src="/logo.jpg" alt="OwnUrVoice Logo" style={{ height: '100px', width: 'auto' }} />
         </div>
 
         <nav>
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/patient-dashboard');
-            }}
+          {/* Dashboard link — active */}
+          <div
+            onClick={() => navigate('/patient-dashboard')}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '12px 20px',
-              textDecoration: 'none',
-              color: '#6366f1',
-              backgroundColor: '#e0e7ff',
-              borderLeft: '3px solid #6366f1'
+              display: 'flex', alignItems: 'center', padding: '12px 20px',
+              color: '#6366f1', cursor: 'pointer',
+              backgroundColor: '#e0e7ff', borderLeft: '3px solid #6366f1'
             }}
           >
-            <i className="bi bi-grid me-2"></i>
-            Dashboard
-          </a>
+            <i className="bi bi-grid me-2"></i>Dashboard
+          </div>
 
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              // this route must match App.tsx
-              navigate('/patient/goals-progress');
-            }}
+          <div
+            onClick={() => navigate('/patient/goals-progress')}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '12px 20px',
-              textDecoration: 'none',
-              color: '#6c757d',
-              backgroundColor: 'transparent',
-              borderLeft: '3px solid transparent'
+              display: 'flex', alignItems: 'center', padding: '12px 20px',
+              color: '#6c757d', cursor: 'pointer',
+              backgroundColor: 'transparent', borderLeft: '3px solid transparent'
             }}
           >
-            <i className="bi bi-bullseye me-2"></i>
-            Goals & Progress
-          </a>
+            <i className="bi bi-bullseye me-2"></i>Goals & Progress
+          </div>
 
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/patient/journal');
-            }}
+          <div
+            onClick={() => navigate('/patient/journal')}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '12px 20px',
-              textDecoration: 'none',
-              color: '#6c757d',
-              backgroundColor: 'transparent',
-              borderLeft: '3px solid transparent'
+              display: 'flex', alignItems: 'center', padding: '12px 20px',
+              color: '#6c757d', cursor: 'pointer',
+              backgroundColor: 'transparent', borderLeft: '3px solid transparent'
             }}
           >
-            <i className="bi bi-journal-text me-2"></i>
-            Journal
-          </a>
+            <i className="bi bi-journal-text me-2"></i>Journal
+          </div>
 
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/patient/community');
-            }}
+          <div
+            onClick={() => navigate('/patient/community')}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '12px 20px',
-              textDecoration: 'none',
-              color: '#6c757d',
-              backgroundColor: 'transparent',
-              borderLeft: '3px solid transparent'
+              display: 'flex', alignItems: 'center', padding: '12px 20px',
+              color: '#6c757d', cursor: 'pointer',
+              backgroundColor: 'transparent', borderLeft: '3px solid transparent'
             }}
           >
-            <i className="bi bi-people me-2"></i>
-            Community
-          </a>
+            <i className="bi bi-people me-2"></i>Community
+          </div>
 
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/patient/resources');
-            }}
+          <div
+            onClick={() => navigate('/patient/resources')}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '12px 20px',
-              textDecoration: 'none',
-              color: '#6c757d',
-              backgroundColor: 'transparent',
-              borderLeft: '3px solid transparent'
+              display: 'flex', alignItems: 'center', padding: '12px 20px',
+              color: '#6c757d', cursor: 'pointer',
+              backgroundColor: 'transparent', borderLeft: '3px solid transparent'
             }}
           >
-            <i className="bi bi-folder me-2"></i>
-            Resources
-          </a>
+            <i className="bi bi-folder me-2"></i>Resources
+          </div>
         </nav>
       </div>
 
-      {/* Main Content */}
+      {/* ── Main Content ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+
         {/* Top Bar */}
-        <div
-          style={{
-            backgroundColor: '#fff',
-            borderBottom: '1px solid #dee2e6',
-            padding: '16px 32px',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            alignItems: 'center'
-          }}
-        >
+        <div style={{
+          backgroundColor: '#fff',
+          borderBottom: '1px solid #dee2e6',
+          padding: '16px 32px',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          alignItems: 'center'
+        }}>
           <span style={{ marginRight: '20px', color: '#6c757d' }}>
             Welcome, {profile?.first_name}
           </span>
           <button
             onClick={handleLogout}
             style={{
-              padding: '8px 16px',
-              border: 'none',
-              backgroundColor: 'transparent',
-              color: '#6c757d',
-              cursor: 'pointer',
-              textDecoration: 'underline'
+              padding: '8px 16px', border: 'none',
+              backgroundColor: 'transparent', color: '#6c757d',
+              cursor: 'pointer', textDecoration: 'underline'
             }}
           >
             Logout
@@ -296,6 +259,7 @@ const PatientDashboard: React.FC = () => {
 
         {/* Content Area */}
         <div style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
+
           {error && (
             <div className="alert alert-danger alert-dismissible fade show" role="alert">
               {error}
@@ -303,92 +267,122 @@ const PatientDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* Session Notes */}
-          <div>
-            <h2 style={{ marginBottom: '8px' }}>Session Notes</h2>
-            <p style={{ color: '#6c757d', marginBottom: '32px' }}>
-              Review notes from your therapy sessions
-            </p>
+          {/* Session Notes header with filter dropdown */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '8px'
+          }}>
+            <h2 style={{ margin: 0 }}>Session Notes</h2>
 
-            {upcomingSessions.length === 0 ? (
-              <p className="text-muted">No session notes available yet.</p>
-            ) : (
-              upcomingSessions.map((session) => (
-                <div
-                  key={session.session_id}
-                  style={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #dee2e6',
-                    borderRadius: '8px',
-                    padding: '24px',
-                    marginBottom: '20px'
-                  }}
-                >
-                  <h5 style={{ marginBottom: '12px' }}>
-                    Session on {formatDate(session.session_date)}
-                  </h5>
-
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '24px',
-                      marginBottom: '16px',
-                      color: '#6c757d',
-                      fontSize: '14px'
-                    }}
-                  >
-                    <span>
-                      <i className="bi bi-person me-1"></i>
-                      {therapists[0]?.first_name} {therapists[0]?.last_name}
-                    </span>
-
-                    <span>
-                      <i className="bi bi-clock me-1"></i>
-                      {session.session_time ? formatTime(session.session_time) : '45'} minutes
-                    </span>
-
-                    <span>
-                      <i className="bi bi-calendar me-1"></i>
-                      {formatShortDate(session.session_date)}
-                    </span>
-                  </div>
-
-                  <div style={{ marginTop: '16px' }}>
-                    <strong>Session Type:</strong>
-                    <div style={{ marginTop: '8px' }}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          backgroundColor: '#e0e7ff',
-                          color: '#6366f1',
-                          padding: '4px 12px',
-                          borderRadius: '4px',
-                          fontSize: '14px',
-                          marginRight: '8px'
-                        }}
-                      >
-                        {session.session_type}
-                      </span>
-                    </div>
-                  </div>
-
-                  {session.location && (
-                    <div
-                      style={{
-                        marginTop: '16px',
-                        backgroundColor: '#f8f9fa',
-                        padding: '16px',
-                        borderRadius: '4px'
-                      }}
-                    >
-                      <strong>Location:</strong>
-                      <p style={{ marginTop: '8px', marginBottom: 0 }}>{session.location}</p>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
+            {/* Filter dropdown */}
+            <select
+              value={sessionFilter}
+              onChange={e => setSessionFilter(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #dee2e6',
+                fontSize: '14px',
+                color: '#1a1a2e',
+                cursor: 'pointer',
+                backgroundColor: '#fff'
+              }}
+            >
+              <option value="all">All Sessions</option>
+              <option value="this_week">This Week</option>
+              <option value="past">Past Appointments</option>
+              <option value="upcoming">Upcoming</option>
+            </select>
           </div>
+
+          <p style={{ color: '#6c757d', marginBottom: '32px', textAlign: 'left' }}>
+            Review notes from your therapy sessions
+          </p>
+
+          {/* Session cards */}
+          {upcomingSessions.length === 0 ? (
+            <p className="text-muted">No session notes available yet.</p>
+          ) : getFilteredSessions().length === 0 ? (
+            <p className="text-muted">No sessions found for this filter.</p>
+          ) : (
+            getFilteredSessions().map((session) => (
+              <div
+                key={session.session_id}
+                style={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #dee2e6',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  marginBottom: '20px'
+                }}
+              >
+              <h5 style={{ marginBottom: '16px', color: '#1a1a2e', fontWeight: '600', textAlign: 'left' }}>
+                Session on {formatDate(session.session_date)}
+              </h5>
+              {/* Meta info row — all items aligned to the left */}
+              <div style={{
+                display: 'flex',
+                gap: '24px',
+                marginBottom: '16px',
+                color: '#6c757d',
+                fontSize: '14px',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'flex-start'
+              }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <i className="bi bi-person"></i>
+                  {therapists[0]?.first_name} {therapists[0]?.last_name}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <i className="bi bi-clock"></i>
+                  {formatTime(session.session_time)}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <i className="bi bi-calendar"></i>
+                  {formatShortDate(session.session_date)}
+                </span>
+              </div>
+
+                {/* Session type badge */}
+                <div style={{ marginBottom: '12px', textAlign: 'left' }}>
+                  <strong style={{ fontSize: '14px' }}>Session Type:</strong>
+                  <div style={{ marginTop: '8px' }}>
+                    <span style={{
+                      display: 'inline-block',
+                      backgroundColor: '#e0e7ff',
+                      color: '#6366f1',
+                      padding: '4px 12px',
+                      borderRadius: '20px',
+                      fontSize: '13px',
+                      fontWeight: '500'
+                    }}>
+                      {session.session_type}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Location */}
+                {session.location && (
+                  <div style={{
+                    marginTop: '12px',
+                    backgroundColor: '#f8f9fa',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    textAlign: 'left'
+                  }}>
+                    <strong>Location:</strong>
+                    <span style={{ marginLeft: '8px', color: '#6c757d' }}>
+                      {session.location}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
