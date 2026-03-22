@@ -49,25 +49,36 @@ const PatientDashboard: React.FC = () => {
    */
   const loadDashboardData = async () => {
     try {
+      // Initialises UI state for data fetching
       setLoading(true);
       setError(null);
+
+      // Normalise userId from different possible userData structures  
       const userId = userData.user_id || userData.id;
+
+      // Fetching the profile 
       const profileData = await getPatientProfile(userId);
       if (!profileData) {
         setError('Patient profile not found');
-        return;
+        return; // Stop execution if primary identity record is missing 
       }
       setProfile(profileData);
+
+      // Fetches therapists and sessions at the same time to save the user a few seconds 
       const [therapistsData, sessionsData] = await Promise.all([
         getPatientTherapists(userId),
         getPatientUpcomingSessions(userId)
       ]);
       setTherapists(therapistsData);
       setUpcomingSessions(sessionsData);
+
+      // Show error message if it breaks 
     } catch (err: any) {
       console.error('Error loading dashboard:', err);
       setError(err.message || 'Failed to load dashboard data');
     } finally {
+      
+      // Turn loading spinner off 
       setLoading(false);
     }
   };
@@ -126,20 +137,31 @@ const PatientDashboard: React.FC = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Create a date object for the start of the week (Monday)
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - today.getDay() + 1);
+
+    // Create a date object for the end of the week (Sunday)
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
 
     return upcomingSessions.filter(session => {
+      // Normalise the session date string into a standard Date object 
       const sessionDate = new Date(session.session_date + 'T00:00:00Z');
+
+      // Check if the session falls within the current Monday-to-Sunday window
       if (sessionFilter === 'this_week') {
         return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
-      } else if (sessionFilter === 'past') {
+      } 
+      // Check if the session occurred before today
+      else if (sessionFilter === 'past') {
         return sessionDate < today;
-      } else if (sessionFilter === 'upcoming') {
+      } 
+      // Check if the session is scheduled for today or later 
+      else if (sessionFilter === 'upcoming') {
         return sessionDate >= today;
       }
+      // Show all sessions if no specific filter is active 
       return true;
     });
   };
@@ -274,7 +296,7 @@ const PatientDashboard: React.FC = () => {
             alignItems: 'center',
             marginBottom: '8px'
           }}>
-            <h2 style={{ margin: 0 }}>Session Notes</h2>
+            <h2 style={{ margin: 0 }}> Your Sessions </h2>
 
             {/* Filter dropdown */}
             <select
@@ -298,7 +320,7 @@ const PatientDashboard: React.FC = () => {
           </div>
 
           <p style={{ color: '#6c757d', marginBottom: '32px', textAlign: 'left' }}>
-            Review notes from your therapy sessions
+            Review your therapy sessions
           </p>
 
           {/* Session cards */}
