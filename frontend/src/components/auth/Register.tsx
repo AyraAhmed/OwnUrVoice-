@@ -36,8 +36,9 @@ const Register: React.FC = () => {
     relationshipToPatient: ''
   });
 
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  // React State Hooks for tracking UI status 
+  const [error, setError] = useState(''); // stores error messages to display to the user 
+  const [loading, setLoading] = useState(false); // tracks if the registration is currently in progress 
 
   /**
    * Updates state on input change 
@@ -118,8 +119,9 @@ const handleSubmit = async (e: React.FormEvent) => {
     // Prepare data for API (remove confirmPassword)
     const { confirmPassword, ...registerData } = formData;
   
-    // Build the data object
+    // Build the data object to be sent to the API/Backend 
     const dataToSend = {
+      // Base field - these are required regardless of the user's role 
       username: registerData.username,
       email: registerData.email,
       password: registerData.password,
@@ -127,18 +129,25 @@ const handleSubmit = async (e: React.FormEvent) => {
       lastName: registerData.lastName,
       phoneNumber: registerData.phoneNumber,
       dateOfBirth: registerData.dateOfBirth,
+
+      // Type Casting - which strings are allowed for 'role'
       role: registerData.role as 'therapist' | 'patient' | 'parent_carer',
       
       // Add role-specific fields
+      // If role is therapist, include professional details and convert experience to a Number
       ...(registerData.role === 'therapist' && {
         clinicName: registerData.clinicName,
         yearsOfExperience: parseInt(registerData.yearsOfExperience),
         qualification: registerData.qualification
       }),
+
+      // If role is patient, include start date and contact preferences 
       ...(registerData.role === 'patient' && {
         therapyStartDate: registerData.therapyStartDate,
         preferredContactMethod: registerData.preferredContactMethod
       }),
+
+      // If role is parent/carer, include the relationship field 
       ...(registerData.role === 'parent_carer' && {
         relationshipToPatient: registerData.relationshipToPatient
       })
@@ -151,18 +160,25 @@ const handleSubmit = async (e: React.FormEvent) => {
     
     console.log('Registration response:', response); 
     
+    // Check if the server responded with a success flag 
     if (response.success) {
       console.log('Success! User created:', response.user);
       console.log('Registration complete! Redirecting to login...');
+      // Navigates the user to the login page 
       navigate('/login');
     } else {
+      // If the server says 'no', log the reason 
       console.log('Registration failed:', response.message);  
+      // UI updated to show the specific error message from the server 
       setError(response.message || 'Registration failed');  
     }
   } catch (err: any) {
+    // Handles 'crashes' (e.g. no internet, server is down)
     console.error('Error caught:', err);  
     setError(err.message || 'Registration failed. Please try again.');
   } finally {
+    // Runs whether the code succeeded OR crashed 
+    // It turns off the spinner so the button becomes clickable again 
     setLoading(false);
   }
 };
@@ -348,11 +364,13 @@ const handleSubmit = async (e: React.FormEvent) => {
                     </select>
                   </div>
 
-                  {/* Conditional Fields - THERAPIST */}
+                  {/* Conditional Fields - THERAPIST
+                    Displays fields specifically for healthcare providers */}
                   {formData.role === 'therapist' && (
                     <div className="role-specific-section">
                       <h5 className="mb-3 text-success">Therapist Information</h5>
 
+                      {/* Clinic Name - required input */}
                       <div className="mb-3">
                         <label htmlFor="clinicName" className="form-label">
                           Clinic Name <span className="text-danger">*</span>
@@ -369,6 +387,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                         />
                       </div>
 
+                      {/* Professional Details */}
                       <div className="row mb-3">
                         <div className="col-md-6">
                           <label htmlFor="yearsOfExperience" className="form-label">
@@ -405,7 +424,8 @@ const handleSubmit = async (e: React.FormEvent) => {
                     </div>
                   )}
 
-                  {/* Conditional Fields - PATIENT */}
+                  {/* Conditional Fields - PATIENT 
+                    Displays date and preference selection for service users */}
                   {formData.role === 'patient' && (
                     <div className="role-specific-section">
                       <h5 className="mb-3 text-info">Patient Information</h5>
@@ -447,7 +467,8 @@ const handleSubmit = async (e: React.FormEvent) => {
                     </div>
                   )}
 
-                    {/* Conditional Fields - PARENT/CARER */}
+                    {/* Conditional Fields - PARENT/CARER
+                      Captures the relationship to the patient for third party registrants */}
                     {formData.role === 'parent_carer' && (
                       <div className="role-specific-section">
                         <h5 className="mb-3 text-warning">Parent/Carer Information</h5>
@@ -474,10 +495,13 @@ const handleSubmit = async (e: React.FormEvent) => {
                   <button
                     type="submit"
                     className="btn btn-primary btn-lg w-100 mb-3 mt-4"
+                    // Disable the button while loading to prevent double-submissions
                     disabled={loading}
                   >
+                    {/* Conditional label: Swap text/icons based on loading state */}
                     {loading ? (
                       <>
+                      {/* Spinner- shows a visual 'processing' animation */}
                         <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                         Creating account...
                       </>
