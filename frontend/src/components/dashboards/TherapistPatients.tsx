@@ -145,7 +145,7 @@ const TherapistPatients: React.FC = () => {
       {/* Navigation Bar */}
       <nav className="dashboard-nav">
         <div className="nav-content">
-          <h1 className="brand">OwnUrVoice</h1>
+        <img src="/logo.jpg" alt="OwnUrVoice Logo" style={{ height: '70px', width: 'auto' }} />
           <div className="nav-right">
             <span className="welcome-text">Welcome, {user?.firstName} {user?.lastName}</span>
             <button onClick={handleLogout} className="logout-btn">Logout</button>
