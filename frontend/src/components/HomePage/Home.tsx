@@ -87,14 +87,19 @@ const Home: React.FC = () => {
   ];
   
 // Auto rotate the testimonials (Carousel state)
+// Tracks the index of the currently visible testimonial 
 const [currentTestimonial, setCurrentTestimonial] = useState(0);
+
+// Tracks the animation direction to apply the correct CSS class 
 const [direction, setDirection] = useState<'left' | 'right'>('right');
 
+// Persists the interval ID across renders without triggering a re-render itself 
 const intervalRef = useRef<number | null>(null);
 
 const ROTATE_MS = 3000; // Duration of each testimonial stays on screen (3 seconds)
 
 /**
+ * Manages the auto-play timer 
  * Clears any existing timer and starts a new 3-second interval 
  * to automatically advance the testimonial slider 
  */
@@ -143,7 +148,7 @@ useEffect(() => {
       {/* Navigation Bar */}
       <nav className="navbar">
         <div className="nav-content">
-          <h1 className="nav-logo">OwnUrVoice</h1>
+        <img src="/logo.jpg" alt="OwnUrVoice Logo" className="nav-logo" />
           <button className="nav-register-btn" onClick={() => navigate('/register')}>
             Register
           </button>
@@ -152,21 +157,25 @@ useEffect(() => {
 
 {/* Hero Section: Main Visual and Call to Action */}
 <section className="hero-section">
+  {/* Background Image reflecting the community/support theme */}
 <img
   className="hero-image"
   src="https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
   alt="Community support hands together"
 />
-
-
+{/* Overlay used to ensure text legibility over the background image */}
   <div className="hero-overlay">
     <div className="hero-content">
+      {/* Primary Heading */}
       <h1 className="hero-title">Own Your Voice</h1>
+
+      {/* Brief Description explaining the platform's core mission  */}
       <p className="hero-description">
         A comprehensive platform connecting speech therapists, patients, and
         families in the journey toward confident communication.
       </p>
 
+      {/* Call to Action (CTA) Button */}
       <button className="hero-cta" onClick={() => navigate("/register")}>
         Get Started Today
       </button>
@@ -177,10 +186,15 @@ useEffect(() => {
 
       {/* Info section: Highlights specific value for each user type */}
       <section className="how-it-works-section">
+
+        {/* Section Header: Provides the primary context for the content  */}
         <h2 className="section-title">How OwnUrVoice Works</h2>
+
+        {/* Manages the layout and alignment of the feature cards */}
         <div className="features-container">
 
           {/* Therapist Card */}
+          {/* Highlights the tools for session management and patient tracking */}
           <div className="feature-card">
             <div className="feature-icon therapist-icon">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -195,6 +209,7 @@ useEffect(() => {
           </div>
 
           {/* Patient Card */}
+          {/* Highlights tools for engagement, exercise completion, and community */}
           <div className="feature-card">
             <div className="feature-icon patient-icon">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -208,6 +223,7 @@ useEffect(() => {
           </div>
 
           {/* Parents & Carers Card */}
+          {/* Highlights visibility and resource tools for family members */}
           <div className="feature-card">
             <div className="feature-icon parents-icon">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -268,12 +284,16 @@ useEffect(() => {
 
       {/* Footer */}
       <footer className="footer">
+
+        {/* Top section containing branding and mission statement */}
         <div className="footer-content">
           <div className="footer-brand">
             <h3>OwnUrVoice</h3>
             <p>Empowering individuals with speech challenges through innovative therapy and support.</p>
           </div>
         </div>
+
+        {/* Bottom section for legal and copyright information */}
         <div className="footer-bottom">
           <p>© 2026 OwnUrVoice. All rights reserved.</p>
         </div>
