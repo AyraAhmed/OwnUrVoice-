@@ -83,12 +83,10 @@ body {
 }
 
 /* Brand logo in navigation */
-.brand {
-  font-family: 'Fraunces', serif;
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--primary);
-  letter-spacing: -0.02em;
+.nav-logo {
+  height: 70px;
+  width: auto;
+  cursor: pointer;
 }
 
 /* Right side of navigation */
