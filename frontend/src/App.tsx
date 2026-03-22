@@ -9,6 +9,7 @@ import AddPatient from './components/dashboards/AddPatient';
 import PatientDetails from './components/dashboards/PatientDetails';
 import PatientDashboard from './components/dashboards/PatientDashboard';
 import PatientGoalsProgress from './components/dashboards/PatientGoalsProgress';
+import GoalsExercises from './components/dashboards/GoalsExercises';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
@@ -29,6 +30,7 @@ function App() {
           <Route path="/therapist/patients" element={<TherapistPatients/>} />
           <Route path="/therapist/patients/add" element={<AddPatient/>} />
           <Route path="/therapist/patient/:patientId" element={<PatientDetails/>} />
+          <Route path="/therapist/goals" element={<GoalsExercises/>} />
 
           {/* Patient routes */}
           <Route path="/patient-dashboard" element={<PatientDashboard/>} />
