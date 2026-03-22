@@ -23,7 +23,7 @@ import '../../components/dashboards/TherapistDashboard.css';
 const PatientGoalsProgress: React.FC = () => {
   const navigate = useNavigate();
 
-  // ─── State ────────────────────────────────────────────────────────────────
+  // State 
   const [profile, setProfile] = useState<PatientProfile | null>(null);
   const [activeGoals, setActiveGoals] = useState<Goal[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -34,11 +34,11 @@ const PatientGoalsProgress: React.FC = () => {
   // Stores goal_id → all goal_exercise_set rows for that goal
   const [goalExerciseRows, setGoalExerciseRows] = useState<Record<string, any[]>>({});
 
-  // ─── Auth ─────────────────────────────────────────────────────────────────
+  // Auth 
   const userDataString = localStorage.getItem('userData');
   const userData = userDataString ? JSON.parse(userDataString) : null;
 
-  // ─── Constants ────────────────────────────────────────────────────────────
+  // Constants 
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const WEEKS = [1, 2, 3, 4];
@@ -218,14 +218,24 @@ const PatientGoalsProgress: React.FC = () => {
   };
 
   /**
-   * Progress = 1% per completed tick, capped at 100%.
+   * Calculates a goal's completion percentage 
+   * Each completed task (tick) equals 1%, capped at 100%
    */
   const getGoalProgress = (goalId: string): number => {
+    
+    // Retrieve all exercises linked to this specific goal ID
     const exercises = getExercisesForGoal(goalId);
     let completedRows = 0;
+
+    // Loop through each exercise and count finished tasks 
     exercises.forEach(({ rows }) => {
+
+      // Filter the rows to find only those marked as 'completed'
+      // Add that count to the running total
       completedRows += rows.filter((r: any) => r.completed).length;
     });
+
+    // Enure the progress never goes above 100%
     return Math.min(completedRows, 100);
   };
 
@@ -233,13 +243,21 @@ const PatientGoalsProgress: React.FC = () => {
    * Detects frequency type from the exercise rows.
    */
   const getFrequencyType = (rows: any[]): 'daily' | 'twice_daily' | 'weekly' | 'other' => {
+    // Extract all valid 'day of Week' labels from the rows 
     const dayValues = rows.map(r => r.day_of_week).filter(Boolean);
+    
+    // Check for specific 'Morning' or 'Afternoon' keywords 
     if (dayValues.some((d: string) => d.includes('Morning') || d.includes('Afternoon'))) {
-      return 'twice_daily';
+      return 'twice_daily'; // Found AM/PM indicators 
     }
+
+    // If we have days listed but no AM/PM, it's a standard daily schedule 
     if (dayValues.length > 0) return 'daily';
-    if (rows.some(r => r.week_number)) return 'weekly';
-    return 'other';
+
+    // Looks for week numbers if day labels are missing 
+    if (rows.some(r => r.week_number)) 
+    return 'weekly'; // Found 'Week 1', 'Week 2' etc 
+    return 'other'; // Default if no recognisable pattern is found 
   };
 
   /**
@@ -377,7 +395,7 @@ const PatientGoalsProgress: React.FC = () => {
         </div>
 
         {/* Content Area */}
-        <div style={{ flex: 1, padding: '32px', maxWidth: '900px', overflowY: 'auto' }}>
+        <div style={{ flex: 1, padding: '32px', maxWidth: '1050px', margin: '0 auto',overflowY: 'auto' }}>
 
           {successMessage && (
             <div className="alert alert-success alert-dismissible fade show">
@@ -433,7 +451,7 @@ const PatientGoalsProgress: React.FC = () => {
                         <h5 style={{ margin: 0, marginBottom: '4px', color: '#1a1a2e' }}>
                           🎯 {goal.goal_description}
                         </h5>
-                        <small style={{ color: '#6c757d' }}>
+                        <small style={{ color: '#6c757d', display: 'block', textAlign: 'left', paddingLeft: '34px' }}>
                           {goal.priority} priority &nbsp;·&nbsp;
                           Target: {formatShortDate(goal.target_date)}
                         </small>
