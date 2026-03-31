@@ -558,4 +558,134 @@ export const createSessionForPatient = async (
     throw error;
   }
 };
+
+/**
+ * Updates an existing session's details
+ */
+export const updateSession = async (
+  sessionId: string,
+  updates: {
+    session_date: string;
+    session_time: string;
+    session_type: string;
+    location: string;
+  }
+): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('session')
+      .update({
+        session_date: updates.session_date,
+        session_time: updates.session_time + ':00',
+        session_type: updates.session_type,
+        location: updates.location
+      })
+      .eq('session_id', sessionId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error updating session:', error);
+    throw error;
+  }
+};
+
+/**
+ * Permanently deletes a session by session ID
+ */
+export const deleteSession = async (sessionId: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('session')
+      .delete()
+      .eq('session_id', sessionId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error deleting session:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates an existing goal
+ */
+export const updateGoal = async (
+  goalId: string,
+  updates: {
+    goal_description: string;
+    target_date: string;
+    priority: string;
+  }
+): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('goal')
+      .update(updates)
+      .eq('goal_id', goalId);
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error updating goal:', error);
+    throw error;
+  }
+};
+
+/**
+ * Deletes a goal and all its linked exercise rows
+ */
+export const deleteGoal = async (goalId: string): Promise<void> => {
+  try {
+    // Delete linked exercise rows first (foreign key constraint)
+    await supabase.from('goal_exercise_set').delete().eq('goal_id', goalId);
+    const { error } = await supabase.from('goal').delete().eq('goal_id', goalId);
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error deleting goal:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates an existing exercise title, description and difficulty
+ */
+export const updateExercise = async (
+  exerciseId: string,
+  updates: {
+    title: string;
+    description: string;
+    difficulty_level: string;
+  }
+): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('exercise')
+      .update(updates)
+      .eq('exercise_id', exerciseId);
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error updating exercise:', error);
+    throw error;
+  }
+};
+
+/**
+ * Deletes all goal_exercise_set rows for a specific exercise within a goal,
+ * then deletes the exercise itself
+ */
+export const deleteExercise = async (exerciseId: string, goalId: string): Promise<void> => {
+  try {
+    await supabase
+      .from('goal_exercise_set')
+      .delete()
+      .eq('exercise_id', exerciseId)
+      .eq('goal_id', goalId);
+    const { error } = await supabase
+      .from('exercise')
+      .delete()
+      .eq('exercise_id', exerciseId);
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error deleting exercise:', error);
+    throw error;
+  }
+};
   
