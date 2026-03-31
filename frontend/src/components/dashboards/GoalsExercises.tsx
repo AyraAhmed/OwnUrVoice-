@@ -215,14 +215,12 @@ const GoalsExercises: React.FC = () => {
   const handleSaveExercise = async (e: React.FormEvent, goalId: string) => {
     e.preventDefault();
     setErrorMsg(null);
-
-    // Validation 
+  
     if (!exerciseTitle) { setErrorMsg('Please enter an exercise title.'); return; }
     if (!selectedPatient) return;
-
+  
     try {
-      // Create the exercise in the exercise table
-      // Save the general exercise details (title, description, level) to the database
+      // Step 1: Create the exercise in the exercise table
       const newExercise = await createExercise({
         created_by: therapistId,
         title: exerciseTitle,
@@ -230,80 +228,110 @@ const GoalsExercises: React.FC = () => {
         difficulty_level: exerciseDifficulty,
         recommended_frequency: exerciseFrequency,
       });
-
-      // Insert rows into goal_exercise_set based on frequency
-      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  
+      // Step 2: Find the goal's target date to calculate the schedule
+      const goal = goals.find(g => g.goal_id === goalId);
+      if (!goal) { setErrorMsg('Goal not found.'); return; }
+  
+      // Calculate number of days from today to the target date
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const targetDate = new Date(goal.target_date + 'T00:00:00Z');
+      const diffTime = targetDate.getTime() - today.getTime();
+      const totalDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+      const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
+  
+      // Day names cycle — repeats Mon-Sun across all weeks
+      const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  
       let rows: any[] = [];
-
-      // Logic for 'Daily': Creates 7 tasks (one for each day)
+      
+      const startDayIndex = today.getDay() === 0 ? 6 : today.getDay() - 1; 
       if (exerciseFrequency === 'daily') {
-        // One row per day of the week
-        rows = days.map(day => ({
-          goal_id: goalId,
-          exercise_id: newExercise.exercise_id,
-          day_of_week: day,
-          week_number: null,
-          completed: false,
-          difficulty_rating: null
-        }));
-
-        // Logic for 'Twice Daily': Creates 14 tasks (Morning/Afternoon for each day)
-      } else if (exerciseFrequency === 'twice daily') {
-        // Two rows per day — Morning and Afternoon
-        rows = days.flatMap(day => [
-          // Morning Details
-          {
+        rows = Array.from({ length: totalDays }, (_, i) => {
+          const date = new Date(today);
+          date.setDate(today.getDate() + i);
+      
+          const jsDay = date.getDay(); // 0 = Sun, 1 = Mon...
+          const dayIndex = jsDay === 0 ? 6 : jsDay - 1; // Monday = 0
+          const dayName = dayNames[dayIndex];
+      
+          // Make week numbers align to Mon-Sun grid
+          const weekNumber = Math.floor((startDayIndex + i) / 7) + 1;
+      
+          return {
             goal_id: goalId,
             exercise_id: newExercise.exercise_id,
-            day_of_week: `${day} Morning`,
-            week_number: null,
+            day_of_week: `Week ${weekNumber} ${dayName}`,
+            week_number: weekNumber,
             completed: false,
             difficulty_rating: null
-          },
-          // Afternoon Details
-          {
-            goal_id: goalId,
-            exercise_id: newExercise.exercise_id,
-            day_of_week: `${day} Afternoon`,
-            week_number: null,
-            completed: false,
-            difficulty_rating: null
-          }
-        ]);
-
-        // Logic for 'Weekly': Creates 4 tasks (representing 4 weeks )
+          };
+        });
+      }
+  
+      else if (exerciseFrequency === 'twice daily') {
+        rows = Array.from({ length: totalDays }, (_, i) => {
+          const date = new Date(today);
+          date.setDate(today.getDate() + i);
+      
+          const jsDay = date.getDay();
+          const dayIndex = jsDay === 0 ? 6 : jsDay - 1;
+          const dayName = dayNames[dayIndex];
+      
+          // Make week numbers align to Mon-Sun grid
+          const weekNumber = Math.floor((startDayIndex + i) / 7) + 1;
+      
+          return [
+            {
+              goal_id: goalId,
+              exercise_id: newExercise.exercise_id,
+              day_of_week: `Week ${weekNumber} ${dayName} Morning`,
+              week_number: weekNumber,
+              completed: false,
+              difficulty_rating: null
+            },
+            {
+              goal_id: goalId,
+              exercise_id: newExercise.exercise_id,
+              day_of_week: `Week ${weekNumber} ${dayName} Afternoon`,
+              week_number: weekNumber,
+              completed: false,
+              difficulty_rating: null
+            }
+          ];
+        }).flat();
+      
+  
       } else if (exerciseFrequency === 'weekly') {
-        // One row per week for 4 weeks
-        rows = [1, 2, 3, 4].map(week => ({
+        // One row per week from today to target date
+        // e.g. if target is 6 weeks away → 6 rows (Week 1 to Week 6)
+        rows = Array.from({ length: totalWeeks }, (_, i) => ({
           goal_id: goalId,
           exercise_id: newExercise.exercise_id,
           day_of_week: null,
-          week_number: week,
+          week_number: i + 1,
           completed: false,
           difficulty_rating: null
         }));
-      } 
-
-      // Save the generated schedule rows into the linking table 
+      }
+  
+      // Step 3: Insert all rows into goal_exercise_set
       const { error } = await supabase.from('goal_exercise_set').insert(rows);
       if (error) throw error;
-
-      // Reset all form inputs 
+  
       setSuccessMsg('Exercise saved and linked to goal!');
       setShowExerciseFormForGoal(null);
       setExerciseTitle('');
       setExerciseDescription('');
       setExerciseDifficulty('beginner');
       setExerciseFrequency('daily');
-
-      // Refresh the patient's goals/exercises to show the new data 
       await loadGoalsForPatient(selectedPatient.user_id);
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err: any) {
-      // Handle database errors 
       setErrorMsg('Failed to save exercise: ' + err.message);
     }
-  };
+  }
 
   /**
    * Clears local storage and redirects to login
