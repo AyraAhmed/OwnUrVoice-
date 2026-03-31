@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getTherapistSessions, searchPatientByEmail, createSessionForPatient } from '../../services/supabaseTherapistService';
+import { getTherapistSessions, searchPatientByEmail, createSessionForPatient, updateSession, deleteSession } from '../../services/supabaseTherapistService';
 import type { Session } from '../../services/supabaseTherapistService';
 import './TherapistDashboard.css';
 
@@ -31,7 +31,21 @@ const TherapistDashboard: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Form data for linking patient
+  // Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editSession, setEditSession] = useState<Session | null>(null);
+  const [editDate, setEditDate] = useState('');
+  const [editTime, setEditTime] = useState('');
+  const [editType, setEditType] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSuccess, setEditSuccess] = useState<string | null>(null);
+
+  // Delete confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [searchEmail, setSearchEmail] = useState('');
   const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0]);
   const [sessionTime, setSessionTime] = useState(() => {
@@ -100,6 +114,95 @@ const TherapistDashboard: React.FC = () => {
    */
   const handleViewPatient = (session: Session) => {
     navigate(`/therapist/patient/${session.patient_id}`, { state: { session } });
+  };
+
+  /**
+   * Opens the edit modal pre-filled with the session's existing data
+   */
+  const handleEditClick = (session: Session) => {
+    setEditSession(session);
+    setEditDate(session.session_date);
+    setEditTime(session.session_time ? session.session_time.substring(0, 5) : '');
+    setEditType(session.session_type || 'Initial Assessment');
+    setEditLocation(session.location || '');
+    setEditError(null);
+    setEditSuccess(null);
+    setShowEditModal(true);
+  };
+
+  /**
+   * Submits the edited session data to Supabase
+   */
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editSession) return;
+
+    setEditError(null);
+    setEditSuccess(null);
+
+    const today = new Date().toISOString().split('T')[0];
+    if (editDate === today) {
+      const now = new Date();
+      const [selectedHours, selectedMinutes] = editTime.split(':').map(Number);
+      if (
+        selectedHours < now.getHours() ||
+        (selectedHours === now.getHours() && selectedMinutes < now.getMinutes())
+      ) {
+        setEditError('You cannot set a session time in the past. Please choose a later time.');
+        return;
+      }
+    }
+
+    try {
+      setEditLoading(true);
+      await updateSession(editSession.session_id, {
+        session_date: editDate,
+        session_time: editTime,
+        session_type: editType,
+        location: editLocation || 'To be determined'
+      });
+
+      setEditSuccess('Session updated successfully!');
+      if (user) await loadSessions(user);
+
+      setTimeout(() => {
+        setShowEditModal(false);
+        setEditSession(null);
+        setEditSuccess(null);
+      }, 1500);
+
+    } catch (err: any) {
+      setEditError(err.message || 'Failed to update session. Please try again.');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  /**
+   * Opens the delete confirmation modal
+   */
+  const handleDeleteClick = (session: Session) => {
+    setSessionToDelete(session);
+    setShowDeleteConfirm(true);
+  };
+
+  /**
+   * Permanently deletes the selected session
+   */
+  const handleDeleteConfirm = async () => {
+    if (!sessionToDelete) return;
+
+    try {
+      setDeleteLoading(true);
+      await deleteSession(sessionToDelete.session_id);
+      if (user) await loadSessions(user);
+      setShowDeleteConfirm(false);
+      setSessionToDelete(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete session.');
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   /**
@@ -439,29 +542,109 @@ const TherapistDashboard: React.FC = () => {
                 <div className="table-body">
                   {getFilteredSessions().map((session, index) => (
                     <div
-                      key={session.session_id}
-                      className="table-row"
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                    >
+                    key={session.session_id}
+                    className="table-row"
+                    style={{ animationDelay: `${index * 0.1}s`, position: 'relative' }}
+                    onMouseEnter={(e) => {
+                      const btns = e.currentTarget.querySelector('.hover-actions') as HTMLElement;
+                      if (btns) btns.style.opacity = '1';
+                    }}
+                    onMouseLeave={(e) => {
+                      const btns = e.currentTarget.querySelector('.hover-actions') as HTMLElement;
+                      if (btns) btns.style.opacity = '0';
+                    }}
+                  >
                       <div className="td patient-name">
                         {session.patient?.first_name} {session.patient?.last_name}
                       </div>
                       <div className="td">{formatDate(session.session_date)}</div>
                       <div className="td">{formatTime(session.session_time)}</div>
                       <div className="td">{session.session_type || 'Assessment'}</div>
+
                       <div className="td">
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+
+                      {/* Edit & Delete — only visible on row hover */}
+                      <div
+                        className="hover-actions"
+                        style={{
+                          display: 'flex',
+                          gap: '6px',
+                          opacity: 0,
+                          transition: 'opacity 0.2s ease'
+                        }}
+                      >
+                        {/* Edit button — amber outline, white background */}
                         <button
-                          className="view-btn"
-                          onClick={() => handleViewPatient(session)}
+                          onClick={() => handleEditClick(session)}
+                          title="Edit session"
+                          style={{
+                            width: '30px',
+                            height: '30px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: 'white',
+                            border: '1.5px solid #f0ad4e',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            padding: 0,
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fff8ee'}
+                          onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
                         >
-                          <svg className="view-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                            <circle cx="12" cy="12" r="3"/>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f0ad4e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                           </svg>
-                          View
+                        </button>
+
+                        {/* Delete button — red outline, white background */}
+                        <button
+                          onClick={() => handleDeleteClick(session)}
+                          title="Delete session"
+                          style={{
+                            width: '30px',
+                            height: '30px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: 'white',
+                            border: '1.5px solid #dc3545',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            padding: 0,
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fff5f5'}
+                          onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc3545" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                            <path d="M10 11v6"/>
+                            <path d="M14 11v6"/>
+                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                          </svg>
                         </button>
                       </div>
+
+                      {/* View button — always visible */}
+                      <button
+                        className="view-btn"
+                        onClick={() => handleViewPatient(session)}
+                      >
+                        <svg className="view-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                          <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        View
+                      </button>
+
                     </div>
+                    </div>
+                  </div>
                   ))}
                 </div>
               </div>
@@ -594,6 +777,184 @@ const TherapistDashboard: React.FC = () => {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Session Modal ── */}
+      {showEditModal && editSession && (
+        <div
+          className="modal show d-block"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowEditModal(false)}
+        >
+          <div className="modal-dialog modal-lg modal-dialog-scrollable" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">
+                  Edit Session — {editSession.patient?.first_name} {editSession.patient?.last_name}
+                </h5>
+                <button type="button" className="btn-close" onClick={() => setShowEditModal(false)}></button>
+              </div>
+
+              <div className="modal-body">
+                {editError && (
+                  <div className="alert alert-danger alert-dismissible fade show">
+                    {editError}
+                    <button type="button" className="btn-close" onClick={() => setEditError(null)}></button>
+                  </div>
+                )}
+                {editSuccess && (
+                  <div className="alert alert-success">
+                    {editSuccess}
+                  </div>
+                )}
+
+                <form onSubmit={handleEditSubmit}>
+                  <div className="row">
+                    <div className="col-md-6 mb-3">
+                      <label className="form-label">Session Date <span className="text-danger">*</span></label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={editDate}
+                        onChange={(e) => setEditDate(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="col-md-6 mb-3">
+                      <label className="form-label">Session Time <span className="text-danger">*</span></label>
+                      <input
+                        type="time"
+                        className="form-control"
+                        value={editTime}
+                        onChange={(e) => setEditTime(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mb-3">
+                    <label className="form-label">Session Type <span className="text-danger">*</span></label>
+                    <select
+                      className="form-select"
+                      value={editType}
+                      onChange={(e) => setEditType(e.target.value)}
+                      required
+                    >
+                      <option value="Initial Assessment">Initial Assessment</option>
+                      <option value="Follow-up">Follow-up</option>
+                      <option value="Therapy Session">Therapy Session</option>
+                      <option value="Review">Review</option>
+                      <option value="Consultation">Consultation</option>
+                    </select>
+                  </div>
+
+                  <div className="mb-3">
+                    <label className="form-label">Location</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={editLocation}
+                      onChange={(e) => setEditLocation(e.target.value)}
+                      placeholder="Clinic Room 1, Online, etc."
+                    />
+                    <small className="text-muted">Leave blank for "To be determined"</small>
+                  </div>
+
+                  <div className="modal-footer">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setShowEditModal(false)}
+                      disabled={editLoading}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-warning text-white"
+                      disabled={editLoading}
+                    >
+                      {editLoading ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2"></span>
+                          Saving...
+                        </>
+                      ) : (
+                        'Save Changes'
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Confirmation Modal ── */}
+      {showDeleteConfirm && sessionToDelete && (
+        <div
+          className="modal show d-block"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title text-danger">Delete Session</h5>
+                <button type="button" className="btn-close" onClick={() => setShowDeleteConfirm(false)}></button>
+              </div>
+
+              <div className="modal-body">
+                <p>Are you sure you want to permanently delete this session?</p>
+                <div style={{
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  marginTop: '12px',
+                  border: '1px solid #dee2e6'
+                }}>
+                  <p style={{ margin: 0, fontWeight: '600', color: '#1a1a2e' }}>
+                    {sessionToDelete.patient?.first_name} {sessionToDelete.patient?.last_name}
+                  </p>
+                  <p style={{ margin: '4px 0 0', color: '#6c757d', fontSize: '14px' }}>
+                    {formatDate(sessionToDelete.session_date)} at {formatTime(sessionToDelete.session_time)} · {sessionToDelete.session_type}
+                  </p>
+                </div>
+                <p style={{ marginTop: '16px', color: '#dc3545', fontSize: '14px' }}>
+                  ⚠️ This action cannot be undone.
+                </p>
+              </div>
+
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={deleteLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleDeleteConfirm}
+                  disabled={deleteLoading}
+                >
+                  {deleteLoading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2"></span>
+                      Deleting...
+                    </>
+                  ) : (
+                    'Yes, Delete Session'
+                  )}
+                </button>
               </div>
             </div>
           </div>
