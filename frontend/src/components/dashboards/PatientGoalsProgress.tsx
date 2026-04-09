@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   getPatientProfile,
   getPatientActiveGoals,
-  getPatientUpcomingSessions,
+  getPatientUpcomingSessions, 
   PatientProfile
 } from '../../services/supabasePatientService';
 import { Goal, Session } from '../../services/supabaseTherapistService';
 import { supabase } from '../../services/supabaseClient';
-import '../../components/dashboards/TherapistDashboard.css';
+import TherapistDashboard from './TherapistDashboard';'../../components/dashboards/TherapistDashboard.css';
 
 const PatientGoalsProgress: React.FC = () => {
   const navigate = useNavigate();
