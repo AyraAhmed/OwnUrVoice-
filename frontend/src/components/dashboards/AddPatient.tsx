@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPatientWithSession } from '../../services/supabaseTherapistService';
-import '../../components/dashboards/TherapistDashboard.css';
+import './TherapistDashboard.css';
 
 /**
  * Allows authorised therapists to register new patients and automatically
