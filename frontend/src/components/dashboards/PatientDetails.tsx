@@ -26,6 +26,8 @@ const PatientDetails: React.FC = () => {
   const [patientInfo, setPatientInfo] = useState<PatientInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [goals, setGoals] = useState<any[]>([]);
+  // Tracks which filter tab the therapist has selected — defaults to showing all goals
+  const [goalFilter, setGoalFilter] = useState<'all' | 'in-progress' | 'completed'>('all');
 
   // Stores goal_id → array of goal_exercise_set rows
   const [goalExerciseRows, setGoalExerciseRows] = useState<Record<string, any[]>>({});
@@ -145,14 +147,11 @@ const PatientDetails: React.FC = () => {
    * Each completed task adds 1% to the total, up to a maximum of 100%
    */
   const getGoalProgress = (goalId: string): number => {
-    // Retrieve the list of exercises for this goal, default to an empty list if non found 
     const rows = goalExerciseRows[goalId] || [];
-
-    // Count how many exercise rows have been marked as 'completed'
+    const totalRows = rows.length;
+    if (totalRows === 0) return 0;
     const completedRows = rows.filter((r: any) => r.completed).length;
-
-    // Return the count as a percentage, ensuring it never exceeds 100
-    return Math.min(completedRows, 100);
+    return Math.round((completedRows / totalRows) * 100);
   };
 
   const handleLogout = () => {
@@ -269,28 +268,81 @@ const PatientDetails: React.FC = () => {
 
           {/* Progress & Goals Section */}
           <div className="section-card">
-            <div className="section-header">
-              <svg className="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-              </svg>
-              <h3 className="section-title">Progress & Goals</h3>
+            <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg className="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+                <h3 className="section-title">Progress & Goals</h3>
+              </div>
+              {/* Filter buttons — highlight the currently active tab */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {(['all', 'in-progress', 'completed'] as const).map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setGoalFilter(f)}
+                    style={{
+                      padding: '5px 14px', borderRadius: '20px', fontSize: '12px',
+                      fontWeight: '500', cursor: 'pointer', border: '1px solid',
+                      borderColor: goalFilter === f ? '#6366f1' : '#dee2e6',
+                      backgroundColor: goalFilter === f ? '#6366f1' : '#fff',
+                      color: goalFilter === f ? '#fff' : '#6c757d',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    {f === 'all' ? 'All' : f === 'in-progress' ? 'In Progress' : 'Completed'}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {goals.length === 0 ? (
               <p style={{ color: '#6c757d', padding: '16px 0' }}>No goals set yet.</p>
-            ) : (
+            ) : (() => {
+              // Filter goals based on the selected tab
+              const filteredGoals = goals.filter(goal => {
+                const p = getGoalProgress(goal.goal_id);
+                if (goalFilter === 'completed') return p === 100;   // Case 1: only fully done goals
+                if (goalFilter === 'in-progress') return p < 100;   // Case 2: only goals still in progress
+                return true;                                         // Case 3: show everything
+              });
+
+              // Show a helpful empty state if no goals match the selected filter
+              if (filteredGoals.length === 0) return (
+                <p style={{ color: '#6c757d', padding: '16px 0' }}>
+                  No {goalFilter === 'completed' ? 'completed' : 'in-progress'} goals yet.
+                </p>
+              );
+              return (
               <div className="goals-list">
-                {goals.map((goal, index) => {
+                {filteredGoals.map((goal, index) => {
                   const progress = getGoalProgress(goal.goal_id);
+                  // Flag used to switch the card to green styling and show the completed badge
+                  const goalComplete = progress === 100;
                   return (
                     <div
                       key={goal.goal_id}
                       className="goal-item"
-                      style={{ animationDelay: `${index * 0.1}s` }}
+                      style={{
+                        animationDelay: `${index * 0.1}s`,
+                        ...(goalComplete ? { backgroundColor: '#f0fdf4', borderColor: '#86efac' } : {})
+                      }}
                     >
                       <div className="goal-header">
-                        <h4 className="goal-title">{goal.goal_description}</h4>
-                        <span className="goal-percentage">{progress}%</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <h4 className="goal-title" style={{ margin: 0 }}>{goal.goal_description}</h4>
+                          {goalComplete && (
+                            <span style={{
+                              fontSize: '11px', padding: '2px 10px', borderRadius: '20px',
+                              backgroundColor: '#22c55e', color: '#fff', fontWeight: '600', flexShrink: 0
+                            }}>
+                              ✓ Completed
+                            </span>
+                          )}
+                        </div>
+                        <span className="goal-percentage" style={{ color: goalComplete ? '#22c55e' : undefined }}>
+                          {progress}%
+                        </span>
                       </div>
                       <p className="goal-description">
                         Target: {formatDate(goal.target_date)}
@@ -310,7 +362,8 @@ const PatientDetails: React.FC = () => {
                   );
                 })}
               </div>
-            )}
+              );
+            })()}
           </div>
 
           {/* Assigned Exercises Section */}
@@ -321,9 +374,24 @@ const PatientDetails: React.FC = () => {
 
             {allExercises.length === 0 ? (
               <p style={{ color: '#6c757d', padding: '16px 0' }}>No exercises assigned yet.</p>
-            ) : (
+            ) : (() => {
+              // Keep exercises in sync with the goal filter so both sections
+              // always reflect the same selected tab
+              const filteredExercises = allExercises.filter(item => {
+                if (goalFilter === 'completed') return item.status === 'completed';         // Case 1: only fully done exercises
+                if (goalFilter === 'in-progress') return item.status !== 'completed';       // Case 2: pending or in-progress exercises
+                return true;                                                                // Case 3: show everything
+              });
+
+              // Show a helpful empty state if no exercises match the selected filter
+              if (filteredExercises.length === 0) return (
+                <p style={{ color: '#6c757d', padding: '16px 0' }}>
+                  No {goalFilter === 'completed' ? 'completed' : 'in-progress'} exercises yet.
+                </p>
+              );
+              return (
               <div className="exercises-list">
-                {allExercises.map((item, index) => (
+                {filteredExercises.map((item, index) => (
                   <div
                     key={item.exercise_id}
                     className={`exercise-item ${item.status === 'completed' ? 'completed' : item.status === 'in-progress' ? 'pending' : 'pending'}`}
@@ -374,7 +442,8 @@ const PatientDetails: React.FC = () => {
                   </div>
                 ))}
               </div>
-            )}
+              );
+            })()}
           </div>
 
         </main>
