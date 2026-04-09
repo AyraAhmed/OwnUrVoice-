@@ -3,12 +3,120 @@ import { useNavigate } from 'react-router-dom';
 import {
   getPatientProfile,
   getPatientActiveGoals,
-  getPatientUpcomingSessions, 
+  getPatientUpcomingSessions,
   PatientProfile
 } from '../../services/supabasePatientService';
 import { Goal, Session } from '../../services/supabaseTherapistService';
 import { supabase } from '../../services/supabaseClient';
-import TherapistDashboard from './TherapistDashboard';'../../components/dashboards/TherapistDashboard.css';
+import '../../components/dashboards/TherapistDashboard.css';
+
+// Days of the week used for building the exercise table columns
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+// Colour scale for difficulty ratings 0–10
+const difficultyColors: Record<number, string> = {
+  0: '#d1d5db', 1: '#22c55e', 2: '#4ade80', 3: '#86efac',
+  4: '#facc15', 5: '#fb923c', 6: '#f97316', 7: '#ef4444',
+  8: '#dc2626', 9: '#b91c1c', 10: '#7f1d1d'
+};
+
+// Readable labels for each difficulty rating level
+const difficultyLabels: Record<number, string> = {
+  0: 'Nothing', 1: 'Very Easy', 2: 'Easy', 3: 'Fairly Easy', 4: 'Somewhat Easy',
+  5: 'Moderate', 6: 'Somewhat Hard', 7: 'Hard', 8: 'Somewhat Difficult',
+  9: 'Difficult', 10: 'Challenging'
+};
+
+const DifficultyDropdown: React.FC<{
+  currentRating: number | null | undefined;
+  onSelect: (val: number) => void;
+  onClear: () => void;
+}> = ({ currentRating, onSelect, onClear }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  const handleSelect = (val: number) => {
+    if (currentRating === val) { onClear(); } else { onSelect(val); }
+    setIsOpen(false);
+  };
+
+  return (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          width: '36px', height: '36px', borderRadius: '50%',
+          backgroundColor: currentRating !== null && currentRating !== undefined
+            ? difficultyColors[currentRating] : '#e9ecef',
+          color: currentRating !== null && currentRating !== undefined ? '#fff' : '#6c757d',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontWeight: 'bold', fontSize: '13px', cursor: 'pointer',
+          border: '2px solid',
+          borderColor: currentRating !== null && currentRating !== undefined
+            ? difficultyColors[currentRating] : '#dee2e6',
+          transition: 'all 0.15s', userSelect: 'none'
+        }}
+      >
+        {currentRating !== null && currentRating !== undefined ? currentRating : '—'}
+      </div>
+
+      {isOpen && (
+        <div style={{
+          position: 'absolute', top: '42px', left: '50%',
+          transform: 'translateX(-50%)', backgroundColor: '#fff',
+          border: '1px solid #dee2e6', borderRadius: '12px', padding: '10px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)', zIndex: 1000,
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '6px', width: '200px'
+        }}>
+          <div
+            onClick={() => { onClear(); setIsOpen(false); }}
+            style={{
+              gridColumn: '1 / -1', padding: '6px', textAlign: 'center',
+              fontSize: '12px', color: '#6c757d', cursor: 'pointer',
+              borderRadius: '6px', backgroundColor: '#f8f9fa', marginBottom: '4px'
+            }}
+          >
+            Clear rating
+          </div>
+          {Object.entries(difficultyColors).map(([val, color]) => {
+            const numVal = parseInt(val);
+            const isSelected = currentRating === numVal;
+            const label = difficultyLabels[numVal];
+            return (
+              <div
+                key={val}
+                onClick={() => handleSelect(numVal)}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+              >
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '50%',
+                  backgroundColor: isSelected ? color : '#f0f0f0',
+                  color: isSelected ? '#fff' : '#6c757d',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 'bold', fontSize: '13px',
+                  border: `2px solid ${isSelected ? color : '#dee2e6'}`,
+                  transition: 'all 0.15s'
+                }}>
+                  {val}
+                </div>
+                {label && (
+                  <span style={{
+                    fontSize: '9px', color: isSelected ? color : '#adb5bd',
+                    fontWeight: isSelected ? '600' : '400', textAlign: 'center',
+                    lineHeight: '1.1', maxWidth: '40px'
+                  }}>
+                    {label}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const PatientGoalsProgress: React.FC = () => {
   const navigate = useNavigate();
@@ -19,26 +127,14 @@ const PatientGoalsProgress: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  // Tracks which filter tab the patient has selected — defaults to showing all goals
+  const [goalFilter, setGoalFilter] = useState<'all' | 'in-progress' | 'completed'>('all');
   const [goalExerciseRows, setGoalExerciseRows] = useState<Record<string, any[]>>({});
 
   const userDataString = localStorage.getItem('userData');
   const userData = userDataString ? JSON.parse(userDataString) : null;
 
-  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-
-  const difficultyColors: Record<number, string> = {
-    0: '#d1d5db', 1: '#22c55e', 2: '#4ade80', 3: '#86efac',
-    4: '#facc15', 5: '#fb923c', 6: '#f97316', 7: '#ef4444',
-    8: '#dc2626', 9: '#b91c1c', 10: '#7f1d1d'
-  };
-
-  const difficultyLabels: Record<number, string> = {
-    0: 'Nothing', 1: 'Very Easy', 2: 'Easy', 3: 'Fairly Easy', 4: 'Somewhat Easy',
-    5: 'Moderate', 6: 'Somewhat Hard', 7: 'Hard', 8: 'Somewhat Difficult',
-    9: 'Difficult', 10: 'Challenging'
-  };
 
   useEffect(() => {
     if (!userData) { navigate('/login'); return; }
@@ -69,7 +165,12 @@ const PatientGoalsProgress: React.FC = () => {
         const { data } = await supabase
           .from('goal_exercise_set')
           .select('*, exercise:exercise_id(*)')
-          .eq('goal_id', goal.goal_id);
+          .eq('goal_id', goal.goal_id)
+          // Order by created_at first so exercises always appear in the order
+          // they were assigned — week and day ordering is applied after that
+          .order('created_at', { ascending: true })
+          .order('week_number', { ascending: true })
+          .order('day_of_week', { ascending: true });
         rowsMap[goal.goal_id] = data || [];
       }
       setGoalExerciseRows(rowsMap);
@@ -82,13 +183,21 @@ const PatientGoalsProgress: React.FC = () => {
     }
   };
 
+  /**
+   * Re-fetches all exercise rows for every active goal after a checkbox
+   * toggle or difficulty save, so the UI reflects the latest DB state
+   */
   const refreshRows = async () => {
     const rowsMap: Record<string, any[]> = {};
     for (const goal of activeGoals) {
       const { data } = await supabase
         .from('goal_exercise_set')
         .select('*, exercise:exercise_id(*)')
-        .eq('goal_id', goal.goal_id);
+        .eq('goal_id', goal.goal_id)
+        // Same stable ordering as the initial load so exercises never swap places
+        .order('created_at', { ascending: true })
+        .order('week_number', { ascending: true })
+        .order('day_of_week', { ascending: true });
       rowsMap[goal.goal_id] = data || [];
     }
     setGoalExerciseRows(rowsMap);
@@ -150,16 +259,34 @@ const PatientGoalsProgress: React.FC = () => {
     });
   };
 
+  /**
+   * Returns the exercises linked to a goal, grouped by exercise_id.
+   * Exercises are sorted by their earliest created_at so the display order
+   * stays consistent even after a row is updated in the database
+   */
   const getExercisesForGoal = (goalId: string) => {
     const allRows = goalExerciseRows[goalId] || [];
-    const exerciseIds = allRows
-      .map((r: any) => r.exercise_id)
-      .filter((id: string, index: number, arr: string[]) => arr.indexOf(id) === index);
 
-    return exerciseIds.map((id: string) => {
-      const rows = allRows.filter((r: any) => r.exercise_id === id);
-      return { exerciseId: id, exerciseInfo: rows[0]?.exercise, rows };
+    // Group every row under its exercise_id
+    const exerciseMap: Record<string, any[]> = {};
+    allRows.forEach((r: any) => {
+      if (!exerciseMap[r.exercise_id]) exerciseMap[r.exercise_id] = [];
+      exerciseMap[r.exercise_id].push(r);
     });
+
+    // Sort exercise IDs by the earliest row created_at so the order is based
+    // on data values, not on whichever row PostgreSQL happens to return first
+    const exerciseIds = Object.keys(exerciseMap).sort((a, b) => {
+      const aMin = Math.min(...exerciseMap[a].map((r: any) => new Date(r.created_at).getTime()));
+      const bMin = Math.min(...exerciseMap[b].map((r: any) => new Date(r.created_at).getTime()));
+      return aMin - bMin;
+    });
+
+    return exerciseIds.map((id: string) => ({
+      exerciseId: id,
+      exerciseInfo: exerciseMap[id][0]?.exercise,
+      rows: exerciseMap[id],
+    }));
   };
 
   const getExerciseProgress = (rows: any[]): number => {
@@ -210,98 +337,6 @@ const PatientGoalsProgress: React.FC = () => {
     if (weekNum === weekNumbers[0] && dayIndex < createdDayIndex) return true;
 
     return false;
-  };
-
-  const DifficultyDropdown = ({
-    currentRating, onSelect, onClear
-  }: {
-    currentRating: number | null | undefined;
-    onSelect: (val: number) => void;
-    onClear: () => void;
-  }) => {
-    const [isOpen, setIsOpen] = React.useState(false);
-
-    const handleSelect = (val: number) => {
-      if (currentRating === val) { onClear(); } else { onSelect(val); }
-      setIsOpen(false);
-    };
-
-    return (
-      <div style={{ position: 'relative', display: 'inline-block' }}>
-        <div
-          onClick={() => setIsOpen(!isOpen)}
-          style={{
-            width: '36px', height: '36px', borderRadius: '50%',
-            backgroundColor: currentRating !== null && currentRating !== undefined
-              ? difficultyColors[currentRating] : '#e9ecef',
-            color: currentRating !== null && currentRating !== undefined ? '#fff' : '#6c757d',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 'bold', fontSize: '13px', cursor: 'pointer',
-            border: '2px solid',
-            borderColor: currentRating !== null && currentRating !== undefined
-              ? difficultyColors[currentRating] : '#dee2e6',
-            transition: 'all 0.15s', userSelect: 'none'
-          }}
-        >
-          {currentRating !== null && currentRating !== undefined ? currentRating : '—'}
-        </div>
-
-        {isOpen && (
-          <div style={{
-            position: 'absolute', top: '42px', left: '50%',
-            transform: 'translateX(-50%)', backgroundColor: '#fff',
-            border: '1px solid #dee2e6', borderRadius: '12px', padding: '10px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)', zIndex: 1000,
-            display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '6px', width: '200px'
-          }}>
-            <div
-              onClick={() => { onClear(); setIsOpen(false); }}
-              style={{
-                gridColumn: '1 / -1', padding: '6px', textAlign: 'center',
-                fontSize: '12px', color: '#6c757d', cursor: 'pointer',
-                borderRadius: '6px', backgroundColor: '#f8f9fa', marginBottom: '4px'
-              }}
-            >
-              Clear rating
-            </div>
-            {Object.entries(difficultyColors).map(([val, color]) => {
-              const numVal = parseInt(val);
-              const isSelected = currentRating === numVal;
-              const label = difficultyLabels[numVal];
-              return (
-                <div
-                  key={val}
-                  onClick={() => handleSelect(numVal)}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
-                >
-                  <div style={{
-                    width: '36px', height: '36px', borderRadius: '50%',
-                    backgroundColor: isSelected ? color : '#f0f0f0',
-                    color: isSelected ? '#fff' : '#6c757d',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontWeight: 'bold', fontSize: '13px',
-                    border: `2px solid ${isSelected ? color : '#dee2e6'}`,
-                    transition: 'all 0.15s'
-                  }}>
-                    {val}
-                  </div>
-                  {label && (
-                    <span style={{
-                      fontSize: '9px', color: isSelected ? color : '#adb5bd',
-                      fontWeight: isSelected ? '600' : '400', textAlign: 'center',
-                      lineHeight: '1.1', maxWidth: '40px'
-                    }}>
-                      {label}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
   };
 
   const navItem = (active: boolean) => ({
@@ -394,15 +429,54 @@ const PatientGoalsProgress: React.FC = () => {
             </div>
           )}
 
-          <h2 style={{ marginBottom: '8px' }}>Goals & Progress</h2>
-          <p style={{ color: '#6c757d', marginBottom: '32px' }}>
-            Track your therapy goals and complete your exercises
-          </p>
+          {/* Page heading and filter buttons sit side by side */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h2 style={{ marginBottom: '4px' }}>Goals & Progress</h2>
+              <p style={{ color: '#6c757d', margin: 0 }}>Track your therapy goals and complete your exercises</p>
+            </div>
 
-          {activeGoals.length === 0 ? (
-            <p className="text-muted">No active goals yet. Your therapist will assign goals for you.</p>
-          ) : (
-            activeGoals.map(goal => {
+            {/* Filter buttons — highlight the currently active tab */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(['all', 'in-progress', 'completed'] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setGoalFilter(f)}
+                  style={{
+                    padding: '6px 16px', borderRadius: '20px', fontSize: '13px',
+                    fontWeight: '500', cursor: 'pointer', border: '1px solid',
+                    borderColor: goalFilter === f ? '#6366f1' : '#dee2e6',
+                    backgroundColor: goalFilter === f ? '#6366f1' : '#fff',
+                    color: goalFilter === f ? '#fff' : '#6c757d',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {f === 'all' ? 'All' : f === 'in-progress' ? 'In Progress' : 'Completed'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{ marginBottom: '32px' }} />
+
+          {(() => {
+            // Show a message if the patient has no goals at all
+            if (activeGoals.length === 0) return <p className="text-muted">No active goals yet. Your therapist will assign goals for you.</p>;
+
+            // Filter goals based on the selected tab
+            const filteredGoals = activeGoals.filter(goal => {
+              const p = getGoalProgress(goal.goal_id);
+              if (goalFilter === 'completed') return p === 100;   // Case 1: only fully done goals
+              if (goalFilter === 'in-progress') return p < 100;   // Case 2: only goals still in progress
+              return true;                                         // Case 3: show everything
+            });
+
+            // Show a helpful empty state if no goals match the selected filter
+            if (filteredGoals.length === 0) return (
+              <p className="text-muted">
+                No {goalFilter === 'completed' ? 'completed' : 'in-progress'} goals yet.
+              </p>
+            );
+            return filteredGoals.map(goal => {
               const linkedExercises = getExercisesForGoal(goal.goal_id);
               const progress = getGoalProgress(goal.goal_id);
               const totalRows = linkedExercises.reduce((sum, e) => sum + e.rows.length, 0);
@@ -410,11 +484,15 @@ const PatientGoalsProgress: React.FC = () => {
                 (sum, e) => sum + e.rows.filter((r: any) => r.completed).length, 0
               );
 
+              // Flag used to switch the card to green styling and show the completed badge
+              const goalComplete = progress === 100;
               return (
                 <div
                   key={goal.goal_id}
                   style={{
-                    backgroundColor: '#fff', border: '1px solid #dee2e6',
+                    // Turn the card green when the goal is fully completed
+                    backgroundColor: goalComplete ? '#f0fdf4' : '#fff',
+                    border: `1px solid ${goalComplete ? '#86efac' : '#dee2e6'}`,
                     borderRadius: '12px', padding: '16px', marginBottom: '16px'
                   }}
                 >
@@ -425,14 +503,24 @@ const PatientGoalsProgress: React.FC = () => {
                       alignItems: 'start', marginBottom: '8px'
                     }}>
                       <div>
-                        <h5 style={{ margin: 0, marginBottom: '4px', color: '#1a1a2e' }}>
-                          🎯 {goal.goal_description}
-                        </h5>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <h5 style={{ margin: 0, color: '#1a1a2e' }}>
+                            🎯 {goal.goal_description}
+                          </h5>
+                          {goalComplete && (
+                            <span style={{
+                              fontSize: '11px', padding: '2px 10px', borderRadius: '20px',
+                              backgroundColor: '#22c55e', color: '#fff', fontWeight: '600', flexShrink: 0
+                            }}>
+                              ✓ Completed
+                            </span>
+                          )}
+                        </div>
                         <small style={{ color: '#6c757d', display: 'block', textAlign: 'left', paddingLeft: '34px' }}>
                           {goal.priority} priority &nbsp;·&nbsp; Target: {formatShortDate(goal.target_date)}
                         </small>
                       </div>
-                      <span style={{ color: '#6366f1', fontWeight: 'bold', fontSize: '20px', flexShrink: 0 }}>
+                      <span style={{ color: goalComplete ? '#22c55e' : '#6366f1', fontWeight: 'bold', fontSize: '20px', flexShrink: 0 }}>
                         {progress}%
                       </span>
                     </div>
@@ -481,11 +569,15 @@ const PatientGoalsProgress: React.FC = () => {
                           ? [...rows].sort((a: any, b: any) => (a.week_number || 0) - (b.week_number || 0))
                           : rows;
 
+                        // Flag used to switch the exercise card to green when all sessions are done
+                        const exComplete = getExerciseProgress(rows) === 100;
                         return (
                           <div
                             key={exerciseId}
                             style={{
-                              backgroundColor: '#fafafa', border: '1px solid #e9ecef',
+                              // Turn the exercise card green when every session is completed
+                              backgroundColor: exComplete ? '#f0fdf4' : '#fafafa',
+                              border: `1px solid ${exComplete ? '#86efac' : '#e9ecef'}`,
                               borderRadius: '10px', padding: '16px', marginBottom: '16px'
                             }}
                           >
@@ -497,6 +589,14 @@ const PatientGoalsProgress: React.FC = () => {
                               <span style={{ fontWeight: '600', fontSize: '15px', color: '#1a1a2e', flex: 1 }}>
                                 {exerciseInfo?.title}
                               </span>
+                              {exComplete && (
+                                <span style={{
+                                  fontSize: '11px', padding: '2px 10px', borderRadius: '20px',
+                                  backgroundColor: '#22c55e', color: '#fff', fontWeight: '600'
+                                }}>
+                                  ✓ Completed
+                                </span>
+                              )}
                               {exerciseInfo?.description && (
                                 <span style={{ fontSize: '13px', color: '#6c757d' }}>
                                   {exerciseInfo.description}
@@ -854,8 +954,8 @@ const PatientGoalsProgress: React.FC = () => {
                   )}
                 </div>
               );
-            })
-          )}
+            });
+          })()}
         </div>
       </div>
     </div>
