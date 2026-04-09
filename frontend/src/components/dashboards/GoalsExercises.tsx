@@ -128,9 +128,10 @@ const GoalsExercises: React.FC = () => {
         const { data } = await supabase
           .from('goal_exercise_set')
           .select('*, exercise:exercise_id(*)')
-          .eq('goal_id', goal.goal_id);
+          .eq('goal_id', goal.goal_id)
+          .order('created_at', { ascending: true });
 
-        // Deduplicate by exercise_id for therapist display
+        // Deduplicate by exercise_id, preserving earliest-created order
         const seen = new Set();
         const unique = (data || []).filter((row: any) => {
           if (seen.has(row.exercise_id)) return false;
@@ -693,8 +694,9 @@ const GoalsExercises: React.FC = () => {
                               <div className="d-flex align-items-start justify-content-between mb-2">
                                 <div className="flex-grow-1">
                                   <div className="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                    <span style={{ fontSize: '15px' }}>🎯</span>
                                     <span className="fw-semibold" style={{ fontSize: '15px', color: '#1a1a2e' }}>
-                                      🎯 {goal.goal_description}
+                                      {goal.goal_description}
                                     </span>
                                     <span style={{
                                       fontSize: '11px',
@@ -707,9 +709,12 @@ const GoalsExercises: React.FC = () => {
                                       {goal.priority} priority
                                     </span>
                                   </div>
-                                  <small className="text-muted">
-                                    📅 Target: {new Date(goal.target_date).toLocaleDateString('en-GB')}
-                                  </small>
+                                  <div className="d-flex align-items-center gap-2">
+                                    <span style={{ fontSize: '13px' }}>📅</span>
+                                    <small className="text-muted">
+                                      Target: {new Date(goal.target_date).toLocaleDateString('en-GB')}
+                                    </small>
+                                  </div>
                                 </div>
 
                                 {/* Button to toggle exercise form for this goal */}
@@ -828,16 +833,22 @@ const GoalsExercises: React.FC = () => {
                               {/* ── Exercises linked to this goal (therapist view) ── */}
                               {linkedExercises.length > 0 && (
                                 <div className="mt-3">
-                                  <small className="fw-semibold text-muted d-block mb-2">
-                                    📋 Exercises ({linkedExercises.length})
-                                  </small>
-                                  {linkedExercises.map((ge: any) => (
+                                  <div className="d-flex align-items-center gap-2 mb-2">
+                                    <span style={{ fontSize: '13px' }}>📋</span>
+                                    <small className="fw-semibold text-muted">
+                                      Exercises ({linkedExercises.length})
+                                    </small>
+                                  </div>
+                                  {linkedExercises.map((ge: any, idx: number) => (
                                     <div
                                       key={ge.exercise_id}
                                       className="d-flex align-items-center gap-2 p-2 rounded-2 mb-1"
                                       style={{ backgroundColor: '#fff', border: '1px solid #e9ecef' }}
                                     >
-                                      <span style={{ fontSize: '13px', color: '#1a1a2e', flex: 1 }}>
+                                      <span style={{ fontSize: '12px', color: '#6c757d', fontWeight: '600', minWidth: '18px' }}>
+                                        {idx + 1}.
+                                      </span>
+                                      <span style={{ fontSize: '13px', color: '#1a1a2e', flex: 1, textAlign: 'left' }}>
                                         {ge.exercise?.title}
                                       </span>
                                       <span style={{
