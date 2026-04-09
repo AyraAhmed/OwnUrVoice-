@@ -67,7 +67,7 @@ class SupabaseAuthService {
             if (data.role === 'therapist') {
                 const { error } = await supabase.from('therapist').insert({
                     user_id: authData.user.id,
-                    username: data.username,
+                    username: data.username.trim(),
                     email: data.email,
                     first_name: data.firstName,
                     last_name: data.lastName,
@@ -87,8 +87,8 @@ class SupabaseAuthService {
                 console.log('Creating new patient account...');
                 
                 const { error } = await supabase.from('patient').insert({
-                    user_id: authData.user.id,  
-                    username: data.username,
+                    user_id: authData.user.id,
+                    username: data.username.trim(),
                     email: data.email,
                     first_name: data.firstName,
                     last_name: data.lastName,
@@ -108,7 +108,7 @@ class SupabaseAuthService {
             } else if (data.role === 'parent_carer') {
                 const { error } = await supabase.from('parent_carer').insert({
                     user_id: authData.user.id,
-                    username: data.username,
+                    username: data.username.trim(),
                     email: data.email, 
                     first_name: data.firstName, 
                     last_name: data.lastName, 
@@ -146,7 +146,8 @@ class SupabaseAuthService {
     // Login user 
     async login(username: string, password: string): Promise<AuthResponse> {
         try {
-            // find email from username by checking all tables 
+            // find email from username by checking all tables
+            const trimmedUsername = username.trim();
             let email = '';
             let userRole = '';
             let fullUserData: any = null;
@@ -155,7 +156,7 @@ class SupabaseAuthService {
             const { data: therapistData } = await supabase
                 .from('therapist')
                 .select('*')
-                .eq('username', username)
+                .eq('username', trimmedUsername)
                 .maybeSingle();
 
             if (therapistData) {
@@ -167,9 +168,9 @@ class SupabaseAuthService {
                 const { data: patientData } = await supabase 
                     .from('patient')
                     .select('*')
-                    .eq('username', username)
+                    .eq('username', trimmedUsername)
                     .maybeSingle();
-                
+
                 if (patientData) {
                     email = patientData.email;
                     userRole = 'patient';
@@ -179,7 +180,7 @@ class SupabaseAuthService {
                     const { data: parentData } = await supabase 
                         .from('parent_carer')
                         .select('*')
-                        .eq('username', username)
+                        .eq('username', trimmedUsername)
                         .maybeSingle();
 
                     if (parentData) {
