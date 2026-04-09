@@ -456,7 +456,7 @@ const TherapistDashboard: React.FC = () => {
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0056b3'}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#007bff'}
             >
-              + Link Existing Patient
+              + Create a Session
             </button>
 
             <button
@@ -522,7 +522,7 @@ const TherapistDashboard: React.FC = () => {
 
             {sessions.length === 0 ? (
               <div style={{ padding: '40px', textAlign: 'center', color: '#6c757d' }}>
-                <p>No sessions yet. Click "Link Existing Patient" to get started!</p>
+                <p>No sessions yet. Click "Create a Session" to get started!</p>
               </div>
             ) : getFilteredSessions().length === 0 ? (
               // Show when filter returns no results
@@ -659,7 +659,7 @@ const TherapistDashboard: React.FC = () => {
           <div className="modal-dialog modal-lg modal-dialog-scrollable" onClick={(e) => e.stopPropagation()}>
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Link Existing Patient</h5>
+                <h5 className="modal-title">Create a Session</h5>
                 <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
               </div>
               <div className="modal-body">
@@ -735,7 +735,6 @@ const TherapistDashboard: React.FC = () => {
                       <option value="Initial Assessment">Initial Assessment</option>
                       <option value="Follow-up">Follow-up</option>
                       <option value="Therapy Session">Therapy Session</option>
-                      <option value="Review">Review</option>
                       <option value="Consultation">Consultation</option>
                     </select>
                   </div>
@@ -848,7 +847,6 @@ const TherapistDashboard: React.FC = () => {
                       <option value="Initial Assessment">Initial Assessment</option>
                       <option value="Follow-up">Follow-up</option>
                       <option value="Therapy Session">Therapy Session</option>
-                      <option value="Review">Review</option>
                       <option value="Consultation">Consultation</option>
                     </select>
                   </div>
