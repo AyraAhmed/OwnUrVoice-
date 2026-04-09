@@ -7,7 +7,7 @@ import {
   PatientProfile
 } from '../../services/supabasePatientService';
 import { Session, Therapist } from '../../services/supabaseTherapistService';
-import '../../components/dashboards/TherapistDashboard.css';
+import './TherapistDashboard.css';
 
 /**
  * Provides a high-level overview for patients, including their session notes,
