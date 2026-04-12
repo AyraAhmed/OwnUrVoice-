@@ -46,9 +46,12 @@ const TherapistDashboard: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Create session form state (used inside the "Create a Session" modal)
   const [searchEmail, setSearchEmail] = useState('');
   const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0]);
   const [sessionTime, setSessionTime] = useState(() => {
+    // Default the time input to the current time so the therapist doesn't have to type it
     const now = new Date();
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
