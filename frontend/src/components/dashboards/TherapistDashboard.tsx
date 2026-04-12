@@ -123,13 +123,18 @@ const TherapistDashboard: React.FC = () => {
    * Opens the edit modal pre-filled with the session's existing data
    */
   const handleEditClick = (session: Session) => {
+    // Store the session being edited in state 
     setEditSession(session);
+    // Pre-fill the form fields with the session's current values 
     setEditDate(session.session_date);
+    // Trim the time for HH:mm:ss to HH:mm so it displays correctly in the time input
     setEditTime(session.session_time ? session.session_time.substring(0, 5) : '');
     setEditType(session.session_type || 'Initial Assessment');
     setEditLocation(session.location || '');
+    // Reset any previous error or success messages 
     setEditError(null);
     setEditSuccess(null);
+    // Open the edit modal 
     setShowEditModal(true);
   };
 
@@ -137,20 +142,23 @@ const TherapistDashboard: React.FC = () => {
    * Submits the edited session data to Supabase
    */
   const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editSession) return;
+    e.preventDefault(); // Prevent the browser from reloading the page 
+    if (!editSession) return; // Exit if no session is selected 
 
     setEditError(null);
     setEditSuccess(null);
 
+    // Validate that the new time is not in the past for today's date 
     const today = new Date().toISOString().split('T')[0];
     if (editDate === today) {
       const now = new Date();
+      // Convert the selected time string into hours and minutes 
       const [selectedHours, selectedMinutes] = editTime.split(':').map(Number);
       if (
         selectedHours < now.getHours() ||
         (selectedHours === now.getHours() && selectedMinutes < now.getMinutes())
       ) {
+        // Block submission if the selected time is in the past 
         setEditError('You cannot set a session time in the past. Please choose a later time.');
         return;
       }
@@ -158,16 +166,20 @@ const TherapistDashboard: React.FC = () => {
 
     try {
       setEditLoading(true);
+      // Send the updated session fields to Supabase 
       await updateSession(editSession.session_id, {
         session_date: editDate,
         session_time: editTime,
         session_type: editType,
+        // Default to 'To be determined' if location is left empty 
         location: editLocation || 'To be determined'
       });
 
       setEditSuccess('Session updated successfully!');
+      // Refresh the session list so the updated data appears immediately 
       if (user) await loadSessions(user);
 
+      // Auto-close the modal after 1.5 seconds 
       setTimeout(() => {
         setShowEditModal(false);
         setEditSession(null);
@@ -175,14 +187,16 @@ const TherapistDashboard: React.FC = () => {
       }, 1500);
 
     } catch (err: any) {
+      // Display error message if the update fails 
       setEditError(err.message || 'Failed to update session. Please try again.');
     } finally {
+      // Always stop loading spinner regardless of success or failure 
       setEditLoading(false);
     }
   };
 
   /**
-   * Opens the delete confirmation modal
+   * Opens the delete confirmation modal with the selected session
    */
   const handleDeleteClick = (session: Session) => {
     setSessionToDelete(session);
@@ -190,20 +204,26 @@ const TherapistDashboard: React.FC = () => {
   };
 
   /**
-   * Permanently deletes the selected session
+   * Permanently deletes the selected session from the database 
    */
   const handleDeleteConfirm = async () => {
     if (!sessionToDelete) return;
 
     try {
       setDeleteLoading(true);
+
+      // Delete the session from the Supabase using its ID 
       await deleteSession(sessionToDelete.session_id);
+      // Refresh the session list so the deleted session disappears immediately
       if (user) await loadSessions(user);
+      // Close the modal and reset the selected session 
       setShowDeleteConfirm(false);
       setSessionToDelete(null);
     } catch (err: any) {
+      // Display the error message if the deletion fails 
       setError(err.message || 'Failed to delete session.');
     } finally {
+      // Always stop the loading spinner regardless of success or failure 
       setDeleteLoading(false);
     }
   };
@@ -362,21 +382,25 @@ const TherapistDashboard: React.FC = () => {
 
     // Get start (Monday) and end (Sunday) of current week
     const startOfWeek = new Date(today);
+    // Calculate the start of the week (Monday)
     startOfWeek.setDate(today.getDate() - today.getDay() + 1);
+    // Calculate the end of the week (Sunday) by adding 6 days to Monday
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
 
     return sessions.filter(session => {
+      // Normalise the session date string into a standard Date object 
       const sessionDate = new Date(session.session_date + 'T00:00:00Z');
 
+      // Check if the session falls within the current Monday-to-Sunday window
       if (sessionFilter === 'this_week') {
         return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
-      } else if (sessionFilter === 'past') {
+      } else if (sessionFilter === 'past') { // Check if the session occurred before today
         return sessionDate < today;
-      } else if (sessionFilter === 'upcoming') {
+      } else if (sessionFilter === 'upcoming') { // Check if the session is scheduled for today or later 
         return sessionDate >= today;
       }
-      return true; // 'all' — show everything
+      return true; // Default - show all sessions if no specific filter is active
     });
   };
 
