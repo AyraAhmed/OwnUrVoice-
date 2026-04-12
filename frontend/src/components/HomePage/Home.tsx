@@ -148,7 +148,11 @@ useEffect(() => {
       {/* Navigation Bar */}
       <nav className="navbar">
         <div className="nav-content">
+          {/* Platform logo */}
         <img src="/logo.jpg" alt="OwnUrVoice Logo" className="nav-logo" />
+
+        {/* Login button - targets returning users who already have an account */}
+        {/* Navigates to the login page */}
           <button className="nav-register-btn" onClick={() => navigate('/login')}>
             Login
           </button>
@@ -175,7 +179,7 @@ useEffect(() => {
         families in the journey toward confident communication.
       </p>
 
-      {/* Call to Action (CTA) Button */}
+      {/* Call to Action (CTA) Button, for new users to register */}
       <button className="hero-cta" onClick={() => navigate("/register")}>
         Get Started Today
       </button>
