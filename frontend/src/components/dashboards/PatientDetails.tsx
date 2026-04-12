@@ -4,6 +4,9 @@ import { getPatientGoals } from '../../services/supabaseTherapistService';
 import { supabase } from '../../services/supabaseClient';
 import './PatientDetails.css';
 
+/**
+ * Minimal patient info needed for the header card on this page
+ */
 interface PatientInfo {
   first_name: string;
   last_name: string;
@@ -12,11 +15,18 @@ interface PatientInfo {
   user_id: string;
 }
 
+/**
+ * Represents the logged-in therapist's session data
+ */
 interface User {
   firstName: string;
   lastName: string;
 }
 
+/**
+ * Shows a specific patient's goals, progress bars, and assigned exercises
+ * Therapists navigate here from the session table or the patients list
+ */
 const PatientDetails: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -154,16 +164,25 @@ const PatientDetails: React.FC = () => {
     return Math.round((completedRows / totalRows) * 100);
   };
 
+  /**
+   * Clears session tokens and redirects to login
+   */
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
     navigate('/login');
   };
 
+  /**
+   * Takes the therapist back to the main dashboard
+   */
   const handleBackToDashboard = () => {
     navigate('/therapist-dashboard');
   };
 
+  /**
+   * Formats an ISO date string to short GB format e.g. 01/04/2026
+   */
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString + 'T00:00:00Z');
