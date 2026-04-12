@@ -169,16 +169,6 @@ const handleSubmit = async (e: React.FormEvent) => {
                   </div>
                 </form>
 
-                {/* Demo Accounts Info */}
-                <div className="mt-4 pt-4 border-top">
-                  <p className="text-muted text-center small mb-2">Demo Accounts:</p>
-                  <p className="text-muted text-center small mb-0">
-                    <strong>Therapist:</strong> therapist123 / password123
-                  </p>
-                  <p className="text-muted text-center small">
-                    <strong>Patient:</strong> patient123 / password123
-                  </p>
-                </div>
               </div>
             </div>
           </div>
