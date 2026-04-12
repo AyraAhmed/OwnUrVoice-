@@ -24,38 +24,38 @@ import { supabase } from '../../services/supabaseClient';
 const GoalsExercises: React.FC = () => {
   const navigate = useNavigate();
 
-  // ─── Auth & Therapist State ───────────────────────────────────────────────
+  // Auth & Therapist State
   const [user, setUser] = useState<any>(null);
-  const [therapistId, setTherapistId] = useState<string>('');
+  const [therapistId, setTherapistId] = useState<string>(''); // Used when creating goals and exercises
 
-  // ─── Data State ───────────────────────────────────────────────────────────
+  // Data State 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null); // Patient currently being viewed in the right panel
   const [goals, setGoals] = useState<Goal[]>([]);
 
   // Stores goal_id → array of goal_exercise_set rows (with exercise info)
   const [goalExercises, setGoalExercises] = useState<Record<string, any[]>>({});
 
-  // ─── Search State ─────────────────────────────────────────────────────────
+  // Search State 
   const [searchQuery, setSearchQuery] = useState('');
 
-  // ─── Loading State ────────────────────────────────────────────────────────
-  const [loading, setLoading] = useState(true);
-  const [goalsLoading, setGoalsLoading] = useState(false);
+  // Loading State
+  const [loading, setLoading] = useState(true); // Initial patients load
+  const [goalsLoading, setGoalsLoading] = useState(false); // Per-patient goals load
 
-  // ─── Alert State ─────────────────────────────────────────────────────────
+  // Alert State
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // ─── Goal Form State ──────────────────────────────────────────────────────
+  // Goal Form State 
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [goalDescription, setGoalDescription] = useState('');
   const [goalStartDate, setGoalStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [goalTargetDate, setGoalTargetDate] = useState('');
   const [goalPriority, setGoalPriority] = useState('medium');
 
-  // ─── Exercise Form State ──────────────────────────────────────────────────
+  // Exercise Form State 
   // Tracks which goal's exercise form is open (stores goal_id or null)
   const [showExerciseFormForGoal, setShowExerciseFormForGoal] = useState<string | null>(null);
   const [exerciseTitle, setExerciseTitle] = useState('');
@@ -221,7 +221,7 @@ const GoalsExercises: React.FC = () => {
     if (!selectedPatient) return;
   
     try {
-      // Step 1: Create the exercise in the exercise table
+      // Create the exercise in the exercise table
       const newExercise = await createExercise({
         created_by: therapistId,
         title: exerciseTitle,
@@ -230,36 +230,46 @@ const GoalsExercises: React.FC = () => {
         recommended_frequency: exerciseFrequency,
       });
   
-      // Step 2: Find the goal's target date to calculate the schedule
+      // Find the goal's target date to calculate the schedule
       const goal = goals.find(g => g.goal_id === goalId);
       if (!goal) { setErrorMsg('Goal not found.'); return; }
   
-      // Calculate number of days from today to the target date
+      // Count the days from today to the target date (e.g. today → target = 14 days)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const targetDate = new Date(goal.target_date + 'T00:00:00Z');
       const diffTime = targetDate.getTime() - today.getTime();
       const totalDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
       const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
-  
+
       // Day names cycle — repeats Mon-Sun across all weeks
       const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  
+
+      // Create one row per day (daily), two rows per day (twice daily), or one row per week (weekly)
+      // Each row = one scheduled slot the patient needs to tick off
       let rows: any[] = [];
-      
-      const startDayIndex = today.getDay() === 0 ? 6 : today.getDay() - 1; 
+
+      // Assign week numbers based on a Mon-Sun grid starting from today's day of the week
+      // e.g. if today is Wednesday (index 2), week 1 covers Mon-Sun of the same week
+      const startDayIndex = today.getDay() === 0 ? 6 : today.getDay() - 1;
+
+      // Schedule generation 
+      // Builds an array of rows to insert into goal_exercise_set
+      // Each row = one scheduled slot the patient needs to tick off
+
       if (exerciseFrequency === 'daily') {
+        // One row per day from today to the target date
         rows = Array.from({ length: totalDays }, (_, i) => {
           const date = new Date(today);
           date.setDate(today.getDate() + i);
-      
+
           const jsDay = date.getDay(); // 0 = Sun, 1 = Mon...
           const dayIndex = jsDay === 0 ? 6 : jsDay - 1; // Monday = 0
           const dayName = dayNames[dayIndex];
-      
+
           // Make week numbers align to Mon-Sun grid
           const weekNumber = Math.floor((startDayIndex + i) / 7) + 1;
-      
+
           return {
             goal_id: goalId,
             exercise_id: newExercise.exercise_id,
@@ -270,8 +280,9 @@ const GoalsExercises: React.FC = () => {
           };
         });
       }
-  
+
       else if (exerciseFrequency === 'twice daily') {
+        // Two rows per day — Morning and Afternoon
         rows = Array.from({ length: totalDays }, (_, i) => {
           const date = new Date(today);
           date.setDate(today.getDate() + i);
@@ -305,7 +316,7 @@ const GoalsExercises: React.FC = () => {
       
   
       } else if (exerciseFrequency === 'weekly') {
-        // One row per week from today to target date
+        // One row per week from today to target date — no day_of_week, just week numbers
         // e.g. if target is 6 weeks away → 6 rows (Week 1 to Week 6)
         rows = Array.from({ length: totalWeeks }, (_, i) => ({
           goal_id: goalId,
@@ -317,7 +328,7 @@ const GoalsExercises: React.FC = () => {
         }));
       }
   
-      // Step 3: Insert all rows into goal_exercise_set
+      // Insert all rows into goal_exercise_set
       const { error } = await supabase.from('goal_exercise_set').insert(rows);
       if (error) throw error;
   
@@ -451,7 +462,7 @@ const GoalsExercises: React.FC = () => {
 
             <div className="row g-4">
 
-              {/* ── LEFT PANEL: Patient List ── */}
+              {/* LEFT PANEL: Patient List  */}
               <div className="col-12 col-lg-4">
                 <div className="card border-0 shadow-sm" style={{ borderRadius: '16px' }}>
                   <div className="card-body p-3">
@@ -546,7 +557,7 @@ const GoalsExercises: React.FC = () => {
                 </div>
               </div>
 
-              {/* ── RIGHT PANEL: Goals & Exercises ── */}
+              {/* RIGHT PANEL: Goals & Exercises */}
               <div className="col-12 col-lg-8">
 
                 {!selectedPatient ? (
@@ -670,7 +681,7 @@ const GoalsExercises: React.FC = () => {
                         </form>
                       )}
 
-                      {/* ── Goals List ── */}
+                      {/* Goals List */}
                       {goalsLoading ? (
                         <div className="text-center py-4">
                           <div className="spinner-border spinner-border-sm text-primary" role="status" />
@@ -741,7 +752,7 @@ const GoalsExercises: React.FC = () => {
                                 </button>
                               </div>
 
-                              {/* ── Add Exercise Form ── */}
+                              {/* Add Exercise Form */}
                               {showExerciseFormForGoal === goal.goal_id && (
                                 <form
                                   onSubmit={(e) => handleSaveExercise(e, goal.goal_id)}
@@ -830,7 +841,7 @@ const GoalsExercises: React.FC = () => {
                                 </form>
                               )}
 
-                              {/* ── Exercises linked to this goal (therapist view) ── */}
+                              {/* Exercises linked to this goal (therapist view) */}
                               {linkedExercises.length > 0 && (
                                 <div className="mt-3">
                                   <div className="d-flex align-items-center gap-2 mb-2">
