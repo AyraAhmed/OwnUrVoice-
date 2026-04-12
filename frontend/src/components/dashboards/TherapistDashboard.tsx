@@ -227,26 +227,31 @@ const TherapistDashboard: React.FC = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(searchEmail)) {
       setFormError('Please enter a valid email address');
-      return;
+      return; // Stop execution if email is invalid 
     }
 
     // Time validation — prevent booking a past time on today's date
     const today = new Date().toISOString().split('T')[0];
     if (sessionDate === today) {
+      // Capture the current system time 
       const now = new Date();
       const currentHours = now.getHours();
       const currentMinutes = now.getMinutes();
+      // Convert the 'HH:mm' string into numbers 
       const [selectedHours, selectedMinutes] = sessionTime.split(':').map(Number);
 
+      // Check if the selected time is earlier than the current hour OR if it's the current hour but the minutes have already passed
       if (
         selectedHours < currentHours ||
         (selectedHours === currentHours && selectedMinutes < currentMinutes)
       ) {
+
+        // Format current hours/minutes with zeros for clean error message
         const formattedCurrentTime = `${String(currentHours).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}`;
         setFormError(
           `You cannot book a session in the past. Current time is ${formattedCurrentTime}. Please select a later time.`
         );
-        return;
+        return; // Exit the function to prevent the booking from proceeding 
       }
     }
 
@@ -256,6 +261,7 @@ const TherapistDashboard: React.FC = () => {
       // Verify if patient exists in the system
       const patient = await searchPatientByEmail(searchEmail);
 
+      // If no patient exists with that email, show error and exit 
       if (!patient) {
         setFormError('Patient not found. Please ask the patient to register first with this email address.');
         return;
@@ -263,17 +269,19 @@ const TherapistDashboard: React.FC = () => {
 
       // Link therapist and patient by creating an initial session
       const userId = user?.user_id || user?.id;
+      // Create the record in the 'sessions' table to link the two users 
       await createSessionForPatient(
-        patient.user_id,
-        userId!,
+        patient.user_id, // Patient ID 
+        userId!, // The current Therapist's ID 
         {
           session_date: sessionDate,
-          session_time: sessionTime + ':00',
+          session_time: sessionTime + ':00', // Append seconds to meet database 'HH:mm:ss' format
           session_type: sessionType,
-          location: location || 'To be determined'
+          location: location || 'To be determined' // Default text if location is empty
         }
       );
 
+      // Success message 
       setSuccessMessage(`Successfully linked ${patient.first_name} ${patient.last_name}!`);
 
       // Reset form on success
@@ -284,10 +292,12 @@ const TherapistDashboard: React.FC = () => {
       setSessionType('Initial Assessment');
       setLocation('');
 
+      // Refresh the dashboard data so the new session appears immediately
       if (user) {
         await loadSessions(user);
       }
 
+      // Auto-close modal after 2 seconds, user can see the success message and close the popup
       setTimeout(() => {
         setShowModal(false);
         setSuccessMessage(null);
@@ -297,6 +307,7 @@ const TherapistDashboard: React.FC = () => {
       console.error('Error linking patient:', err);
       setFormError(err.message || 'Failed to link patient. Please try again.');
     } finally {
+      // Always stop the 'loading' spinner regardless of success or failure
       setFormLoading(false);
     }
   };
