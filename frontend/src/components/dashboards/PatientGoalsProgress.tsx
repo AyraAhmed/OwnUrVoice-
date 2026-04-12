@@ -28,6 +28,11 @@ const difficultyLabels: Record<number, string> = {
   9: 'Difficult', 10: 'Challenging'
 };
 
+/**
+ * A small circular button that opens a 0–10 difficulty picker
+ * Patients tap the circle to log how hard an exercise felt
+ * Clicking the same value again will clear the rating
+ */
 const DifficultyDropdown: React.FC<{
   currentRating: number | null | undefined;
   onSelect: (val: number) => void;
@@ -118,22 +123,36 @@ const DifficultyDropdown: React.FC<{
   );
 };
 
+/**
+ * Patient-facing goals and exercises tracker
+ * Shows active goals with progress bars, and a weekly exercise schedule
+ * Patients can tick off exercises and rate their difficulty from here
+ */
 const PatientGoalsProgress: React.FC = () => {
   const navigate = useNavigate();
 
+  // Patient data
   const [profile, setProfile] = useState<PatientProfile | null>(null);
   const [activeGoals, setActiveGoals] = useState<Goal[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
+
+  // UI state 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Filter state 
   // Tracks which filter tab the patient has selected — defaults to showing all goals
   const [goalFilter, setGoalFilter] = useState<'all' | 'in-progress' | 'completed'>('all');
+
+  // Stores goal_id → all exercise rows with their completion and difficulty data
   const [goalExerciseRows, setGoalExerciseRows] = useState<Record<string, any[]>>({});
 
+  // Pull user data from local storage to get the patient ID
   const userDataString = localStorage.getItem('userData');
   const userData = userDataString ? JSON.parse(userDataString) : null;
 
+  // Used to highlight today's column in the exercise table
   const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
 
   useEffect(() => {
@@ -143,6 +162,9 @@ const PatientGoalsProgress: React.FC = () => {
     loadGoalsData();
   }, []);
 
+  /**
+   * Fetches the patient's profile, active goals, sessions, and all exercise rows on load
+   */
   const loadGoalsData = async () => {
     try {
       setLoading(true);
@@ -160,6 +182,8 @@ const PatientGoalsProgress: React.FC = () => {
       setActiveGoals(goalsData);
       setSessions(sessionsData);
 
+      // Fetch every exercise row for every goal and store them grouped by goal_id
+      // This powers both the progress bars and the weekly schedule tables
       const rowsMap: Record<string, any[]> = {};
       for (const goal of goalsData) {
         const { data } = await supabase
@@ -203,6 +227,9 @@ const PatientGoalsProgress: React.FC = () => {
     setGoalExerciseRows(rowsMap);
   };
 
+  /**
+   * Flips the completed status of a single exercise row and timestamps the change
+   */
   const handleToggleDay = async (rowId: string, currentStatus: boolean) => {
     try {
       const { error } = await supabase
@@ -219,6 +246,9 @@ const PatientGoalsProgress: React.FC = () => {
     }
   };
 
+  /**
+   * Saves the patient's difficulty rating for a specific exercise row
+   */
   const handleSaveDifficulty = async (rowId: string, rating: number) => {
     try {
       const { error } = await supabase
@@ -234,6 +264,9 @@ const PatientGoalsProgress: React.FC = () => {
     }
   };
 
+  /**
+   * Removes the difficulty rating from a row — resets the circle back to the default dash
+   */
   const handleClearDifficulty = async (rowId: string) => {
     try {
       const { error } = await supabase
@@ -247,11 +280,17 @@ const PatientGoalsProgress: React.FC = () => {
     }
   };
 
+  /**
+   * Clears session data and sends the patient back to login
+   */
   const handleLogout = () => {
     localStorage.removeItem('userData');
     navigate('/login');
   };
 
+  /**
+   * Formats a date string to short GB format e.g. 1/4/2026
+   */
   const formatShortDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-GB', {
@@ -289,11 +328,22 @@ const PatientGoalsProgress: React.FC = () => {
     }));
   };
 
+  /**
+   * Calculates the exercise progress bar percentage
+   * Formula: completed checkboxes ÷ total checkboxes × 100, capped at 100%
+   */
   const getExerciseProgress = (rows: any[]): number => {
     const completedRows = rows.filter((r: any) => r.completed).length;
-    return Math.min(completedRows, 100);
+    const totalRows = rows.length;
+    if (totalRows === 0) return 0;
+    return Math.min(Math.round((completedRows / totalRows) * 100), 100); // e.g. 7 ÷ 14 × 100 = 50%
   };
 
+  /**
+   * Calculates an overall completion percentage for a goal
+   * Formula: completed checkboxes ÷ total checkboxes × 100
+   * Loops through every exercise linked to the goal and adds up all the rows
+   */
   const getGoalProgress = (goalId: string): number => {
     const exercises = getExercisesForGoal(goalId);
     let completedRows = 0;
@@ -303,9 +353,13 @@ const PatientGoalsProgress: React.FC = () => {
       totalRows += rows.length;
     });
     if (totalRows === 0) return 0;
-    return Math.round((completedRows / totalRows) * 100);
+    return Math.round((completedRows / totalRows) * 100); // e.g. 7 ÷ 14 × 100 = 50%
   };
 
+  /**
+   * Detects the schedule type of an exercise based on its row data
+   * Used to decide which column layout to render in the exercise table
+   */
   const getFrequencyType = (rows: any[]): 'daily' | 'twice_daily' | 'weekly' | 'other' => {
     const dayValues = rows.map(r => r.day_of_week).filter(Boolean);
     if (dayValues.some((d: string) => d.includes('Morning') || d.includes('Afternoon'))) return 'twice_daily';
@@ -339,6 +393,10 @@ const PatientGoalsProgress: React.FC = () => {
     return false;
   };
 
+  /**
+   * Returns the inline style object for a sidebar nav item
+   * Active item gets the purple highlight, inactive stays grey
+   */
   const navItem = (active: boolean) => ({
     display: 'flex', alignItems: 'center', padding: '12px 20px', cursor: 'pointer',
     color: active ? '#6366f1' : '#6c757d',
@@ -476,6 +534,8 @@ const PatientGoalsProgress: React.FC = () => {
                 No {goalFilter === 'completed' ? 'completed' : 'in-progress'} goals yet.
               </p>
             );
+            // ── Goal Cards ──
+            // One card per goal — each card contains a progress bar and the full exercise schedule table
             return filteredGoals.map(goal => {
               const linkedExercises = getExercisesForGoal(goal.goal_id);
               const progress = getGoalProgress(goal.goal_id);
@@ -553,6 +613,10 @@ const PatientGoalsProgress: React.FC = () => {
                       {linkedExercises.map(({ exerciseId, rows, exerciseInfo }) => {
                         const frequencyType = getFrequencyType(rows);
 
+                        // Sort rows into the correct column order depending on the schedule type
+                        // Twice daily: sort by day then Morning before Afternoon
+                        // Daily: sort by day of week Mon→Sun
+                        // Weekly: sort by week number ascending
                         const sortedRows = frequencyType === 'twice_daily'
                           ? [...rows].sort((a: any, b: any) => {
                               const dayA = a.day_of_week?.replace(' Morning', '').replace(' Afternoon', '') || '';
@@ -613,11 +677,11 @@ const PatientGoalsProgress: React.FC = () => {
                               </span>
                             </div>
 
-                            {/* Exercise progress bar */}
+                            {/* Exercise progress bar — completed ÷ total × 100 */}
                             {(() => {
-                              const exProgress = getExerciseProgress(rows);
-                              const exCompleted = rows.filter((r: any) => r.completed).length;
-                              const exTotal = rows.length;
+                              const exProgress = getExerciseProgress(rows); // percentage (0–100)
+                              const exCompleted = rows.filter((r: any) => r.completed).length; // ticked checkboxes
+                              const exTotal = rows.length; // total scheduled slots
                               return (
                                 <div style={{ marginBottom: '16px' }}>
                                   <div style={{
