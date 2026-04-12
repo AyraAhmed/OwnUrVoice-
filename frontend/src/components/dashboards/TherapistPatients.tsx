@@ -21,13 +21,20 @@ const TherapistPatients: React.FC = () => {
 
   /**
    * State Hooks 
+   * Manages the patient list, search term, loading and error states 
    */
 
+ // Full list of patients from Supabase 
   const [patients, setPatients] = useState<Patient[]>([]);
+  // Filtered list based on search 
   const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
+  // Current search input value 
   const [searchTerm, setSearchTerm] = useState('');
+  // Controls the loading spinner 
   const [loading, setLoading] = useState(true);
+  // Stores any error messages 
   const [error, setError] = useState<string | null>(null);
+  // Stores the logged-in therapist 
   const [user, setUser] = useState<User | null>(null);
 
   /**
@@ -39,6 +46,7 @@ const TherapistPatients: React.FC = () => {
     const userDataString = localStorage.getItem('userData');
     const userData = userDataString ? JSON.parse(userDataString) : null;
 
+    // Redirects to login if no user data found in local storage 
     if (!userData) {
       navigate('/login');
       return;
@@ -50,6 +58,7 @@ const TherapistPatients: React.FC = () => {
 
     const userRole = userData?.user_role || userData?.role || userData?.userRole;
 
+    // Redirects non-therapist users back to login
     if (userRole !== 'therapist') {
       console.log(' Not authorised - redirecting to login');
       navigate('/login');
@@ -62,17 +71,19 @@ const TherapistPatients: React.FC = () => {
 
   /**
    * Effect: Client-side Search Filtering 
-   * Filters the master patient list based on the searchTerm
+   * Runs every time searchTerm or patients changes 
+   * Filters the master patient list without making a new API call
    */
   
   useEffect(() => {
+    // If search is empty, show all patients 
     if (searchTerm.trim() === '') {
       setFilteredPatients(patients);
     } else {
       const filtered = patients.filter(patient =>
+        // Search across name and email 
         `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (patient.patient_profile && patient.patient_profile.toLowerCase().includes(searchTerm.toLowerCase()))
+        patient.email.toLowerCase().includes(searchTerm.toLowerCase()) 
       );
       setFilteredPatients(filtered);
     }
@@ -84,13 +95,16 @@ const TherapistPatients: React.FC = () => {
   const loadPatients = async (userData: any) => {
     try {
       setLoading(true);
+      // Retrieve the correct user ID from the session data 
       const userId = userData.user_id || userData.id;
       const data = await getTherapistPatients(userId);
+      // Set both the full list and the filtered list to the same data initial load
       setPatients(data);
       setFilteredPatients(data);
     } catch (err: any) {
       setError(err.message || 'Failed to load patients');
     } finally {
+      // Always stop the loading spinner regardless of success or failure
       setLoading(false);
     }
   };
@@ -130,6 +144,7 @@ const TherapistPatients: React.FC = () => {
 
   /**
    * Calculates current age based on Date of Birth
+   * Accounts for whether the birthday has occurred yet this year 
    */
 
   const calculateAge = (dob: string) => {
@@ -138,6 +153,7 @@ const TherapistPatients: React.FC = () => {
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
+    // Subtract one year if the birthday hasn't happened yet this year 
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
@@ -145,7 +161,7 @@ const TherapistPatients: React.FC = () => {
   };
 
    /**
-    * Render logic 
+    * Show loading spinner whole data is being fetched 
     */
 
   if (loading) {
@@ -184,7 +200,8 @@ const TherapistPatients: React.FC = () => {
             </svg>
             <span>Dashboard</span>
           </div>
-          
+
+          {/* Active sidebar item - highlights the current page */}
           <div className="sidebar-item active">
             <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -218,14 +235,14 @@ const TherapistPatients: React.FC = () => {
             <p className="panel-subtitle">Manage and view all your patients</p>
           </div>
 
-          {/* Error Message */}
+          {/* Error Message - only shown if data loading fails */}
           {error && (
             <div className="alert alert-danger mx-3" role="alert">
               {error}
             </div>
           )}
 
-          {/* Search Bar */}
+          {/* Search Bar - filters patients by name, email or notes */}
           <div className="section-card" style={{ marginBottom: '20px' }}>
             <div className="input-group">
               <span className="input-group-text" style={{ backgroundColor: '#f8f9fa', border: '1px solid #dee2e6' }}>
@@ -236,7 +253,7 @@ const TherapistPatients: React.FC = () => {
               <input
                 type="text"
                 className="form-control"
-                placeholder="Search by name, email, or notes..."
+                placeholder="Search by name or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{ border: '1px solid #dee2e6' }}
@@ -244,7 +261,7 @@ const TherapistPatients: React.FC = () => {
             </div>
           </div>
 
-          {/* Add New Patient Button */}
+          {/* Add New Patient Button - redirects to dashboard where the modal is*/}
           <div style={{ marginBottom: '20px' }}>
             <button 
               className="btn btn-primary"
@@ -254,18 +271,20 @@ const TherapistPatients: React.FC = () => {
               <i className="bi bi-plus-circle me-2"></i>
               Add New Patient
             </button>
+            {/* Dynamic patient count - updates as the search filter changes */}
             <span className="text-muted">
               {filteredPatients.length} patient{filteredPatients.length !== 1 ? 's' : ''} found
             </span>
           </div>
 
-          {/* Patients Grid */}
+          {/* Patients Grid (Empty state) - shown when no patients match the search or no patients exist */}
           {filteredPatients.length === 0 ? (
             <div className="section-card">
               <div style={{ padding: '60px 20px', textAlign: 'center' }}>
                 <svg width="64" height="64" fill="#ccc" viewBox="0 0 16 16" style={{ marginBottom: '20px' }}>
                   <path d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1h8zm-7.978-1A.261.261 0 0 1 7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002a.274.274 0 0 1-.014.002H7.022zM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM6.936 9.28a5.88 5.88 0 0 0-1.23-.247A7.35 7.35 0 0 0 5 9c-4 0-5 3-5 4 0 .667.333 1 1 1h4.216A2.238 2.238 0 0 1 5 13c0-1.01.377-2.042 1.09-2.904.243-.294.526-.569.846-.816zM4.92 10A5.493 5.493 0 0 0 4 13H1c0-.26.164-1.03.76-1.724.545-.636 1.492-1.256 3.16-1.275zM1.5 5.5a3 3 0 1 1 6 0 3 3 0 0 1-6 0zm3-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
                 </svg>
+                {/* Different messages depending on whether a search is active */}
                 <h5 className="text-muted">
                   {searchTerm ? 'No patients found matching your search' : 'No patients yet'}
                 </h5>
@@ -275,21 +294,25 @@ const TherapistPatients: React.FC = () => {
               </div>
             </div>
           ) : (
+            /* Patient cards grid - one card per patient */
             <div className="row">
               {filteredPatients.map((patient) => (
                 <div key={patient.user_id} className="col-md-6 col-lg-4 mb-4">
+                  {/* Clicking anywhere on the card navigates to that patients' details page */}
                   <div className="section-card" style={{ height: '100%', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }}
                     onClick={() => navigate(`/therapist/patient/${patient.user_id}`)}
                     onMouseEnter={(e) => {
+                      // Lift the card on hover for a visual affordance 
                       e.currentTarget.style.transform = 'translateY(-4px)';
                       e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
                     }}
                     onMouseLeave={(e) => {
+                      // Reset the card position when the mouse leaves 
                       e.currentTarget.style.transform = 'translateY(0)';
                       e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
                     }}
                   >
-                    {/* Patient Avatar */}
+                    {/* Patient Avatar - Circular placeholder with an icon */}
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
                       <div style={{
                         width: '60px',
@@ -316,7 +339,7 @@ const TherapistPatients: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Patient Info */}
+                    {/* Patient Contact & Personal Info */}
                     <div style={{ fontSize: '14px', color: '#6c757d', marginBottom: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
                         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style={{ marginRight: '8px' }}>
@@ -334,6 +357,7 @@ const TherapistPatients: React.FC = () => {
                         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style={{ marginRight: '8px' }}>
                           <path d="M4 .5a.5.5 0 0 0-1 0V1H2a2 2 0 0 0-2 2v1h16V3a2 2 0 0 0-2-2h-1V.5a.5.5 0 0 0-1 0V1H4V.5zM16 14V5H0v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2z"/>
                         </svg>
+                        {/* Dynamically calculated age from date of birth */}
                         <span>Age: {calculateAge(patient.date_of_birth)} years</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -344,27 +368,12 @@ const TherapistPatients: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Patient Profile Notes */}
-                    {patient.patient_profile && (
-                      <div style={{ 
-                        marginTop: '12px', 
-                        padding: '10px', 
-                        backgroundColor: '#f8f9fa', 
-                        borderRadius: '6px',
-                        fontSize: '13px',
-                        color: '#495057'
-                      }}>
-                        <strong>Notes:</strong> {patient.patient_profile.substring(0, 60)}
-                        {patient.patient_profile.length > 60 && '...'}
-                      </div>
-                    )}
-
-                    {/* View Button */}
+                    {/* View Deatils Button */}
                     <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #dee2e6' }}>
                       <button 
                         className="btn btn-sm btn-primary w-100"
                         onClick={(e) => {
-                          e.stopPropagation();
+                          e.stopPropagation(); // prevents the card's onClick from also firing
                           navigate(`/therapist/patient/${patient.user_id}`);
                         }}
                       >
@@ -381,22 +390,25 @@ const TherapistPatients: React.FC = () => {
             </div>
           )}
 
-          {/* Summary Stats */}
+          {/* Summary Stats - only shown when patients exist */}
           {filteredPatients.length > 0 && (
             <div className="section-card" style={{ marginTop: '30px' }}>
               <div className="row text-center">
+                {/* Total number of linked patients */}
                 <div className="col-md-4">
                   <h3 className="text-primary" style={{ fontSize: '32px', fontWeight: 'bold' }}>
                     {patients.length}
                   </h3>
                   <p className="text-muted">Total Patients</p>
                 </div>
+                {/* Number of patients currently visible after filtering */}
                 <div className="col-md-4">
                   <h3 className="text-success" style={{ fontSize: '32px', fontWeight: 'bold' }}>
                     {filteredPatients.length}
                   </h3>
                   <p className="text-muted">Showing</p>
                 </div>
+                {/* Patients whose therapy start date is within the last 30 days */}
                 <div className="col-md-4">
                   <h3 className="text-info" style={{ fontSize: '32px', fontWeight: 'bold' }}>
                     {patients.filter(p => p.therapy_start_date && 
