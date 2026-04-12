@@ -106,8 +106,10 @@ const PatientDetails: React.FC = () => {
 
   /**
    * Gets unique exercises across all goals with their completion status.
+   * Builds a map of exercises, counting total and completed rows for each one
    */
   const getAllExercisesWithStatus = () => {
+    // Map to store each unique exercise with its progress data 
     const exerciseMap: Record<string, {
       exercise: any;
       totalRows: number;
@@ -115,16 +117,20 @@ const PatientDetails: React.FC = () => {
       goalDescription: string;
     }> = {};
 
+    // Loop through every goal
     goals.forEach(goal => {
+      // Get all exercise rows linked to this goal 
       const rows = goalExerciseRows[goal.goal_id] || [];
+      // Loop through each row and group them by exercise_id
       rows.forEach((row: any) => {
         const id = row.exercise_id;
+        // If this exercises hasn't been seen before, initialise its entry in the map
         if (!exerciseMap[id]) {
           exerciseMap[id] = {
-            exercise: row.exercise,
-            totalRows: 0,
-            completedRows: 0,
-            goalDescription: goal.goal_description
+            exercise: row.exercise,   // Full exercise details
+            totalRows: 0,            // Total scheduled sessions
+            completedRows: 0,       // Completed sessions 
+            goalDescription: goal.goal_description // Which goal this exercise belongs to
           };
         }
         // Increment the total count for this specific exercise 
