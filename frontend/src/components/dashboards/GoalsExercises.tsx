@@ -253,10 +253,6 @@ const GoalsExercises: React.FC = () => {
       // e.g. if today is Wednesday (index 2), week 1 covers Mon-Sun of the same week
       const startDayIndex = today.getDay() === 0 ? 6 : today.getDay() - 1;
 
-      // Schedule generation 
-      // Builds an array of rows to insert into goal_exercise_set
-      // Each row = one scheduled slot the patient needs to tick off
-
       if (exerciseFrequency === 'daily') {
         // One row per day from today to the target date
         rows = Array.from({ length: totalDays }, (_, i) => {
