@@ -774,7 +774,7 @@ const TherapistDashboard: React.FC = () => {
                           Linking...
                         </>
                       ) : (
-                        'Link Patient & Create Session'
+                        'Create Session'
                       )}
                     </button>
                   </div>
@@ -785,7 +785,7 @@ const TherapistDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* ── Edit Session Modal ── */}
+      {/* Edit Session Modal */}
       {showEditModal && editSession && (
         <div
           className="modal show d-block"
@@ -897,7 +897,7 @@ const TherapistDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* ── Delete Confirmation Modal ── */}
+      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && sessionToDelete && (
         <div
           className="modal show d-block"
