@@ -19,7 +19,10 @@ interface User {
 const TherapistPatients: React.FC = () => {
   const navigate = useNavigate();
 
-  // State Hooks 
+  /**
+   * State Hooks 
+   */
+
   const [patients, setPatients] = useState<Patient[]>([]);
   const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,6 +34,7 @@ const TherapistPatients: React.FC = () => {
    * Effect: Authentication & Authorisation 
    * Redirects to login if user is not authenticated or not a therapist 
    */
+
   useEffect(() => {
     const userDataString = localStorage.getItem('userData');
     const userData = userDataString ? JSON.parse(userDataString) : null;
@@ -40,7 +44,9 @@ const TherapistPatients: React.FC = () => {
       return;
     }
 
-    // Check multiple possible key names for roles to ensure compatibility 
+    /**
+     * Check multiple possible key names for roles to ensure compatibility 
+     */
 
     const userRole = userData?.user_role || userData?.role || userData?.userRole;
 
@@ -58,6 +64,7 @@ const TherapistPatients: React.FC = () => {
    * Effect: Client-side Search Filtering 
    * Filters the master patient list based on the searchTerm
    */
+  
   useEffect(() => {
     if (searchTerm.trim() === '') {
       setFilteredPatients(patients);
@@ -88,18 +95,27 @@ const TherapistPatients: React.FC = () => {
     }
   };
 
-  // Event Handlers 
+ 
+
+  /**
+   * Event Handlers
+   * Clears session data from local storage and redirects to login
+   */
   const handleLogout = () => {
     localStorage.removeItem('userData');
     navigate('/login');
   };
 
+  /**
+   * Navigates the therapist back to the main dashboard
+   */
   const handleBackToDashboard = () => {
     navigate('/therapist-dashboard');
   };
 
-  // Utility Functions 
+  
   /**
+   * Utility Functions 
    * Formates ISO date string to British format (e.g., 01 Jan 2026)
    */
   const formatDate = (dateString: string) => {
@@ -128,7 +144,9 @@ const TherapistPatients: React.FC = () => {
     return age;
   };
 
-  // Render logic 
+   /**
+    * Render logic 
+    */
 
   if (loading) {
     return (
