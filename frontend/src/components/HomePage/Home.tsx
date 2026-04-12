@@ -149,8 +149,8 @@ useEffect(() => {
       <nav className="navbar">
         <div className="nav-content">
         <img src="/logo.jpg" alt="OwnUrVoice Logo" className="nav-logo" />
-          <button className="nav-register-btn" onClick={() => navigate('/register')}>
-            Register
+          <button className="nav-register-btn" onClick={() => navigate('/login')}>
+            Login
           </button>
         </div>
       </nav>
