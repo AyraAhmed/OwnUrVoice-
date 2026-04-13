@@ -304,6 +304,7 @@ const PatientGoalsProgress: React.FC = () => {
    * stays consistent even after a row is updated in the database
    */
   const getExercisesForGoal = (goalId: string) => {
+    // Retrieve all rows for this goal, default to empty array if none found
     const allRows = goalExerciseRows[goalId] || [];
 
     // Group every row under its exercise_id
@@ -318,13 +319,14 @@ const PatientGoalsProgress: React.FC = () => {
     const exerciseIds = Object.keys(exerciseMap).sort((a, b) => {
       const aMin = Math.min(...exerciseMap[a].map((r: any) => new Date(r.created_at).getTime()));
       const bMin = Math.min(...exerciseMap[b].map((r: any) => new Date(r.created_at).getTime()));
-      return aMin - bMin;
+      return aMin - bMin; // Sort ascending - earliest created exercise appears first
     });
 
+    // Return each exercise with its ID, full details and all its scheduled rows
     return exerciseIds.map((id: string) => ({
       exerciseId: id,
-      exerciseInfo: exerciseMap[id][0]?.exercise,
-      rows: exerciseMap[id],
+      exerciseInfo: exerciseMap[id][0]?.exercise, // Full exercise details from the first row 
+      rows: exerciseMap[id],                     //  All scheduled rows for this exercise 
     }));
   };
 
@@ -361,11 +363,15 @@ const PatientGoalsProgress: React.FC = () => {
    * Used to decide which column layout to render in the exercise table
    */
   const getFrequencyType = (rows: any[]): 'daily' | 'twice_daily' | 'weekly' | 'other' => {
+    // Extract all valid 'day of week labels from the rows 
     const dayValues = rows.map(r => r.day_of_week).filter(Boolean);
-    if (dayValues.some((d: string) => d.includes('Morning') || d.includes('Afternoon'))) return 'twice_daily';
+    // Check for specific 'Morning' or 'Afternoon' keywords 
+    if (dayValues.some((d: string) => d.includes('Morning') || d.includes('Afternoon'))) return 'twice_daily'; // Found AM/PM indicators 
+    // If we have days listed but no AM/PM, it's a standard daily schedule
     if (dayValues.length > 0) return 'daily';
-    if (rows.some(r => r.week_number)) return 'weekly';
-    return 'other';
+    // Looks for week numbers if days labels are missing 
+    if (rows.some(r => r.week_number)) return 'weekly'; // Found 'Week 1', 'Week 2' etc
+    return 'other'; // Default if no recognisable pattern is found
   };
 
   /**
