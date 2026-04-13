@@ -182,19 +182,21 @@ const PatientDashboard: React.FC = () => {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
 
-      {/* ── Sidebar ── */}
+      {/* Sidebar */}
       <div style={{
         width: '240px',
         backgroundColor: '#fff',
         borderRight: '1px solid #dee2e6',
         padding: '20px 0'
       }}>
+        {/* Platform logo */}
         <div style={{ padding: '0 20px', marginBottom: '30px' }}>
           <img src="/logo.jpg" alt="OwnUrVoice Logo" style={{ height: '100px', width: 'auto' }} />
         </div>
 
+        {/* Sidebar Navigation */}
         <nav>
-          {/* Dashboard link — active */}
+          {/* Dashboard  — active page, highlighted in purple */}
           <div
             onClick={() => navigate('/patient-dashboard')}
             style={{
@@ -206,6 +208,7 @@ const PatientDashboard: React.FC = () => {
             <i className="bi bi-grid me-2"></i>Dashboard
           </div>
 
+          {/* Goals & Progress — navigates to the goals and exercises page */}
           <div
             onClick={() => navigate('/patient/goals-progress')}
             style={{
@@ -217,6 +220,7 @@ const PatientDashboard: React.FC = () => {
             <i className="bi bi-bullseye me-2"></i>Goals & Progress
           </div>
 
+          {/* Journal — navigates to the journal page */}
           <div
             onClick={() => navigate('/patient/journal')}
             style={{
@@ -228,6 +232,7 @@ const PatientDashboard: React.FC = () => {
             <i className="bi bi-journal-text me-2"></i>Journal
           </div>
 
+          {/* Community — navigates to the community page */}
           <div
             onClick={() => navigate('/patient/community')}
             style={{
@@ -239,6 +244,7 @@ const PatientDashboard: React.FC = () => {
             <i className="bi bi-people me-2"></i>Community
           </div>
 
+          {/* Resources — navigates to the resources page */}
           <div
             onClick={() => navigate('/patient/resources')}
             style={{
@@ -252,10 +258,10 @@ const PatientDashboard: React.FC = () => {
         </nav>
       </div>
 
-      {/* ── Main Content ── */}
+      {/* Main Content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
-        {/* Top Bar */}
+        {/* Top Bar - displays welcome message and logout button */}
         <div style={{
           backgroundColor: '#fff',
           borderBottom: '1px solid #dee2e6',
@@ -264,9 +270,11 @@ const PatientDashboard: React.FC = () => {
           justifyContent: 'flex-end',
           alignItems: 'center'
         }}>
+          {/* Display the logged-in patient's first name */}
           <span style={{ marginRight: '20px', color: '#6c757d' }}>
             Welcome, {profile?.first_name}
           </span>
+          {/* Logout button — clears session data and redirects to login */}
           <button
             onClick={handleLogout}
             style={{
@@ -281,7 +289,7 @@ const PatientDashboard: React.FC = () => {
 
         {/* Content Area */}
         <div style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
-
+          {/* Error message — only shown if data loading fails */}
           {error && (
             <div className="alert alert-danger alert-dismissible fade show" role="alert">
               {error}
@@ -298,7 +306,7 @@ const PatientDashboard: React.FC = () => {
           }}>
             <h2 style={{ margin: 0 }}> Your Sessions </h2>
 
-            {/* Filter dropdown */}
+            {/* Filter dropdown - filters sessions by All, This Week, Past or Upcoming */}
             <select
               value={sessionFilter}
               onChange={e => setSessionFilter(e.target.value)}
@@ -323,12 +331,14 @@ const PatientDashboard: React.FC = () => {
             Review your therapy sessions
           </p>
 
-          {/* Session cards */}
+          {/* Empty state — shown when no sessions exist */}
           {upcomingSessions.length === 0 ? (
             <p className="text-muted">No session notes available yet.</p>
           ) : getFilteredSessions().length === 0 ? (
+            // Empty state — shown when filter returns no results 
             <p className="text-muted">No sessions found for this filter.</p>
           ) : (
+            // Session Cards — one card per session
             getFilteredSessions().map((session) => (
               <div
                 key={session.session_id}
@@ -340,10 +350,11 @@ const PatientDashboard: React.FC = () => {
                   marginBottom: '20px'
                 }}
               >
+                {/* Session date heading */}
               <h5 style={{ marginBottom: '16px', color: '#1a1a2e', fontWeight: '600', textAlign: 'left' }}>
                 Session on {formatDate(session.session_date)}
               </h5>
-              {/* Meta info row — all items aligned to the left */}
+              {/* Meta info row — all items aligned to the left, therapist name, time and date */}
               <div style={{
                 display: 'flex',
                 gap: '24px',
@@ -354,14 +365,17 @@ const PatientDashboard: React.FC = () => {
                 alignItems: 'center',
                 justifyContent: 'flex-start'
               }}>
+                {/* Therapist name */}
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <i className="bi bi-person"></i>
                   {therapists[0]?.first_name} {therapists[0]?.last_name}
                 </span>
+                {/* Session time — trimmed to HH:MM */}
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <i className="bi bi-clock"></i>
                   {formatTime(session.session_time)}
                 </span>
+                {/* Session date — formatted to GB format */}
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <i className="bi bi-calendar"></i>
                   {formatShortDate(session.session_date)}
@@ -372,6 +386,7 @@ const PatientDashboard: React.FC = () => {
                 <div style={{ marginBottom: '12px', textAlign: 'left' }}>
                   <strong style={{ fontSize: '14px' }}>Session Type:</strong>
                   <div style={{ marginTop: '8px' }}>
+                    {/* Purple badge displaying the session type */}
                     <span style={{
                       display: 'inline-block',
                       backgroundColor: '#e0e7ff',
@@ -386,7 +401,7 @@ const PatientDashboard: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Location */}
+                {/* Location - only shown if a location was set */}
                 {session.location && (
                   <div style={{
                     marginTop: '12px',
