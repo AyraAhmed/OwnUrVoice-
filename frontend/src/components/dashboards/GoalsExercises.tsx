@@ -214,15 +214,17 @@ const GoalsExercises: React.FC = () => {
    * auto-generates a schedule based on the chosen frequency 
    */
   const handleSaveExercise = async (e: React.FormEvent, goalId: string) => {
-    e.preventDefault();
+    e.preventDefault(); // Prevent the browser from reloading the page
     setErrorMsg(null);
   
+    // Validation - exercise title is required before proceeding 
     if (!exerciseTitle) { setErrorMsg('Please enter an exercise title.'); return; }
     if (!selectedPatient) return;
   
     try {
       // Create the exercise in the exercise table
       const newExercise = await createExercise({
+        // Save the general exercise details to the exercise table first 
         created_by: therapistId,
         title: exerciseTitle,
         description: exerciseDescription,
@@ -230,7 +232,7 @@ const GoalsExercises: React.FC = () => {
         recommended_frequency: exerciseFrequency,
       });
   
-      // Find the goal's target date to calculate the schedule
+      // Find the goal's target date to calculate the schedule (how many rows to generate)
       const goal = goals.find(g => g.goal_id === goalId);
       if (!goal) { setErrorMsg('Goal not found.'); return; }
   
@@ -239,6 +241,9 @@ const GoalsExercises: React.FC = () => {
       today.setHours(0, 0, 0, 0);
       const targetDate = new Date(goal.target_date + 'T00:00:00Z');
       const diffTime = targetDate.getTime() - today.getTime();
+
+      // Math.max(1) ensures at least one row is always creates
+      // Math.ceil rounds up so no sessions are missed 
       const totalDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
       const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
 
@@ -260,10 +265,11 @@ const GoalsExercises: React.FC = () => {
           date.setDate(today.getDate() + i);
 
           const jsDay = date.getDay(); // 0 = Sun, 1 = Mon...
-          const dayIndex = jsDay === 0 ? 6 : jsDay - 1; // Monday = 0
+          const dayIndex = jsDay === 0 ? 6 : jsDay - 1; // Monday = 0 index
           const dayName = dayNames[dayIndex];
 
           // Make week numbers align to Mon-Sun grid
+          // Calculate which week number this day falls in 
           const weekNumber = Math.floor((startDayIndex + i) / 7) + 1;
 
           return {
@@ -271,8 +277,8 @@ const GoalsExercises: React.FC = () => {
             exercise_id: newExercise.exercise_id,
             day_of_week: `Week ${weekNumber} ${dayName}`,
             week_number: weekNumber,
-            completed: false,
-            difficulty_rating: null
+            completed: false,       // All session start as incomplete
+            difficulty_rating: null // No difficulty rating until the patient completes the session
           };
         });
       }
@@ -288,8 +294,10 @@ const GoalsExercises: React.FC = () => {
           const dayName = dayNames[dayIndex];
       
           // Make week numbers align to Mon-Sun grid
+          // Calculate which week number this day falls in 
           const weekNumber = Math.floor((startDayIndex + i) / 7) + 1;
       
+          // Return an array of two rows for this day 
           return [
             {
               goal_id: goalId,
@@ -308,17 +316,18 @@ const GoalsExercises: React.FC = () => {
               difficulty_rating: null
             }
           ];
-        }).flat();
+        }).flat(); // Flattens the nested arrays into a single list, each day produces 2 rows (AM/PM)
       
   
       } else if (exerciseFrequency === 'weekly') {
-        // One row per week from today to target date — no day_of_week, just week numbers
+        // One row per week from today to target date 
+        // Uses week numbers instead of day names
         // e.g. if target is 6 weeks away → 6 rows (Week 1 to Week 6)
         rows = Array.from({ length: totalWeeks }, (_, i) => ({
           goal_id: goalId,
           exercise_id: newExercise.exercise_id,
-          day_of_week: null,
-          week_number: i + 1,
+          day_of_week: null,        // No specific day for weekly exercises
+          week_number: i + 1,       // Week 1, Week 2 , Week 3...
           completed: false,
           difficulty_rating: null
         }));
@@ -328,15 +337,21 @@ const GoalsExercises: React.FC = () => {
       const { error } = await supabase.from('goal_exercise_set').insert(rows);
       if (error) throw error;
   
+      // Show success message to confirm the exercise was saved 
       setSuccessMsg('Exercise saved and linked to goal!');
+      // Close the exercise form 
       setShowExerciseFormForGoal(null);
+      // Reset all form fields back to their default values 
       setExerciseTitle('');
       setExerciseDescription('');
       setExerciseDifficulty('beginner');
       setExerciseFrequency('daily');
+      // Refresh the goals and exercises list so the new exercise appears immediately
       await loadGoalsForPatient(selectedPatient.user_id);
+      // Clear success message after 3 seconds 
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err: any) {
+      // Display a specific error message if the database request fails 
       setErrorMsg('Failed to save exercise: ' + err.message);
     }
   }
