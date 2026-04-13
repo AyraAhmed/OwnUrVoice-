@@ -28,6 +28,10 @@ function App() {
           {/* Therapist routes */}
           <Route path="/therapist-dashboard" element={<TherapistDashboard/>} />
           <Route path="/therapist/patients" element={<TherapistPatients/>} />
+          {/* Add patient — legacy manual patient registration form */}
+          {/* This page is no longer the primary method for adding patients */}
+          {/* Patients are now linked via the 'Create a Session' modal in the Therapist Dashboard */}
+          {/* Route kept for backward compatibility to prevent broken links */}
           <Route path="/therapist/patients/add" element={<AddPatient/>} />
           <Route path="/therapist/patient/:patientId" element={<PatientDetails/>} />
           <Route path="/therapist/goals" element={<GoalsExercises/>} />
