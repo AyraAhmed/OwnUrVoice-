@@ -235,11 +235,14 @@ const PatientGoalsProgress: React.FC = () => {
       const { error } = await supabase
         .from('goal_exercise_set')
         .update({
+          // Toggle the completed status - if true set to false, if false set to true
           completed: !currentStatus,
+          // Timestamp the completion if ticking, clear the data if unticking
           completion_date: !currentStatus ? new Date().toISOString() : null
         })
-        .eq('row_id', rowId);
+        .eq('row_id', rowId); // Only update the specific row the patient clicked
       if (error) throw error;
+      // Refresh all rows so the progress bar updates immediately 
       await refreshRows();
     } catch (err: any) {
       setError(err.message || 'Failed to update exercise');
@@ -253,11 +256,13 @@ const PatientGoalsProgress: React.FC = () => {
     try {
       const { error } = await supabase
         .from('goal_exercise_set')
-        .update({ difficulty_rating: rating })
-        .eq('row_id', rowId);
+        .update({ difficulty_rating: rating }) // Save the selected 0-10 rating
+        .eq('row_id', rowId); // Only update the specific row 
       if (error) throw error;
       setSuccessMessage('Difficulty saved!');
+      // Refresh rows so the updated rating circle appears immediately 
       await refreshRows();
+      // Clear the success message after 2 seconds 
       setTimeout(() => setSuccessMessage(null), 2000);
     } catch (err: any) {
       setError(err.message || 'Failed to save difficulty');
@@ -271,9 +276,10 @@ const PatientGoalsProgress: React.FC = () => {
     try {
       const { error } = await supabase
         .from('goal_exercise_set')
-        .update({ difficulty_rating: null })
-        .eq('row_id', rowId);
+        .update({ difficulty_rating: null }) // Set rating back to null to show the default dash
+        .eq('row_id', rowId); // Only update the specific row 
       if (error) throw error;
+      // Refresh rows so the cleared rating circle appears immediately 
       await refreshRows();
     } catch (err: any) {
       setError(err.message || 'Failed to clear difficulty');
@@ -431,22 +437,29 @@ const PatientGoalsProgress: React.FC = () => {
         width: '240px', backgroundColor: '#fff',
         borderRight: '1px solid #dee2e6', padding: '20px 0'
       }}>
+        {/* Platform logo */}
         <div style={{ padding: '0 20px', marginBottom: '30px' }}>
           <img src="/logo.jpg" alt="OwnUrVoice Logo" style={{ height: '100px', width: 'auto' }} />
         </div>
+        {/* Sidebar Navigation */}
         <nav>
+          {/* Dashboard — navigates back to the patient dashboard */}
           <div style={navItem(false)} onClick={() => navigate('/patient-dashboard')}>
             <i className="bi bi-grid me-2"></i>Dashboard
           </div>
+          {/* Goals & Progress — active page, highlighted in purple */}
           <div style={navItem(true)} onClick={() => navigate('/patient/goals-progress')}>
             <i className="bi bi-bullseye me-2"></i>Goals & Progress
           </div>
+          {/* Journal — navigates to the journal page */}
           <div style={navItem(false)} onClick={() => navigate('/patient/journal')}>
             <i className="bi bi-journal-text me-2"></i>Journal
           </div>
+          {/* Community — navigates to the community page */}
           <div style={navItem(false)} onClick={() => navigate('/patient/community')}>
             <i className="bi bi-people me-2"></i>Community
           </div>
+          {/* Resources — navigates to the resources page */}
           <div style={navItem(false)} onClick={() => navigate('/patient/resources')}>
             <i className="bi bi-folder me-2"></i>Resources
           </div>
@@ -456,15 +469,17 @@ const PatientGoalsProgress: React.FC = () => {
       {/* Main Content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
-        {/* Top Bar */}
+        {/* Top Bar - displays welcome message and logout button */}
         <div style={{
           backgroundColor: '#fff', borderBottom: '1px solid #dee2e6',
           padding: '16px 32px', display: 'flex',
           justifyContent: 'flex-end', alignItems: 'center'
         }}>
+          {/* Display the logged-in patient's first name */}
           <span style={{ marginRight: '20px', color: '#6c757d' }}>
             Welcome, {profile?.first_name}
           </span>
+          {/* Logout button — clears session data and redirects to login */}
           <button
             onClick={handleLogout}
             style={{
@@ -480,12 +495,15 @@ const PatientGoalsProgress: React.FC = () => {
         {/* Content Area */}
         <div style={{ flex: 1, padding: '32px', maxWidth: '1050px', margin: '0 auto', overflowY: 'auto' }}>
 
+          {/* Success message — shown briefly after saving a difficulty rating */}
           {successMessage && (
             <div className="alert alert-success alert-dismissible fade show">
               {successMessage}
               <button type="button" className="btn-close" onClick={() => setSuccessMessage(null)}></button>
             </div>
           )}
+
+          {/* Error message — shown if a checkbox toggle or difficulty save fails */}
           {error && (
             <div className="alert alert-danger alert-dismissible fade show">
               {error}
@@ -540,17 +558,19 @@ const PatientGoalsProgress: React.FC = () => {
                 No {goalFilter === 'completed' ? 'completed' : 'in-progress'} goals yet.
               </p>
             );
-            // ── Goal Cards ──
-            // One card per goal — each card contains a progress bar and the full exercise schedule table
+             {/* Goal Cards  */}
+             {/* One card per goal — each card contains a progress bar and the full exercise schedule table */}
             return filteredGoals.map(goal => {
               const linkedExercises = getExercisesForGoal(goal.goal_id);
               const progress = getGoalProgress(goal.goal_id);
+
+              // Count total and completed rows across all exercises for this goal
               const totalRows = linkedExercises.reduce((sum, e) => sum + e.rows.length, 0);
               const completedRows = linkedExercises.reduce(
                 (sum, e) => sum + e.rows.filter((r: any) => r.completed).length, 0
               );
 
-              // Flag used to switch the card to green styling and show the completed badge
+              // Flag used to switch the card to green styling and show the completed badge when goal is fully completed
               const goalComplete = progress === 100;
               return (
                 <div
@@ -573,6 +593,7 @@ const PatientGoalsProgress: React.FC = () => {
                           <h5 style={{ margin: 0, color: '#1a1a2e' }}>
                             🎯 {goal.goal_description}
                           </h5>
+                          {/* Completed badge — only shown when progress reaches 100% */}
                           {goalComplete && (
                             <span style={{
                               fontSize: '11px', padding: '2px 10px', borderRadius: '20px',
@@ -582,24 +603,29 @@ const PatientGoalsProgress: React.FC = () => {
                             </span>
                           )}
                         </div>
+                        {/* Goal priority and target date */}
                         <small style={{ color: '#6c757d', display: 'block', textAlign: 'left', paddingLeft: '34px' }}>
                           {goal.priority} priority &nbsp;·&nbsp; Target: {formatShortDate(goal.target_date)}
                         </small>
                       </div>
+                      {/* Progress percentage — green when completed, purple when in progress */}
                       <span style={{ color: goalComplete ? '#22c55e' : '#6366f1', fontWeight: 'bold', fontSize: '20px', flexShrink: 0 }}>
                         {progress}%
                       </span>
                     </div>
+                    {/* Goal progress bar — fills based on completed rows divide by total rows */}
                     <div style={{
                       width: '100%', height: '10px', backgroundColor: '#e9ecef',
                       borderRadius: '5px', overflow: 'hidden', marginBottom: '6px'
                     }}>
                       <div style={{
                         width: `${progress}%`, height: '100%',
+                        // Green when completed, purple when in progress
                         backgroundColor: progress === 100 ? '#22c55e' : '#6366f1',
                         transition: 'width 0.4s ease'
                       }}></div>
                     </div>
+                    {/* Session completion count */}
                     <small style={{ color: '#6c757d' }}>
                       {completedRows} of {totalRows} sessions completed
                     </small>
@@ -607,6 +633,7 @@ const PatientGoalsProgress: React.FC = () => {
 
                   {/* Exercises */}
                   {linkedExercises.length === 0 ? (
+                    // Empty state — shown when no exercises have been assigned to this goal yet
                     <p style={{ color: '#6c757d', fontSize: '14px', fontStyle: 'italic' }}>
                       No exercises assigned for this goal yet.
                     </p>
@@ -616,7 +643,9 @@ const PatientGoalsProgress: React.FC = () => {
                         📋 Exercises
                       </h6>
 
+                      {/* Loop through each exercise linked to this goal */}
                       {linkedExercises.map(({ exerciseId, rows, exerciseInfo }) => {
+                        // Detect the schedule type to determine which layout table to render
                         const frequencyType = getFrequencyType(rows);
 
                         // Sort rows into the correct column order depending on the schedule type
@@ -625,6 +654,7 @@ const PatientGoalsProgress: React.FC = () => {
                         // Weekly: sort by week number ascending
                         const sortedRows = frequencyType === 'twice_daily'
                           ? [...rows].sort((a: any, b: any) => {
+                            // Sort twice daily rows by day first, then Morning before Afternoon
                               const dayA = a.day_of_week?.replace(' Morning', '').replace(' Afternoon', '') || '';
                               const dayB = b.day_of_week?.replace(' Morning', '').replace(' Afternoon', '') || '';
                               const dayDiff = DAYS.indexOf(dayA) - DAYS.indexOf(dayB);
@@ -632,10 +662,12 @@ const PatientGoalsProgress: React.FC = () => {
                               return a.day_of_week?.includes('Morning') ? -1 : 1;
                             })
                           : frequencyType === 'daily'
+                          // Sort daily rows by day of week Mon to Sun
                           ? [...rows].sort((a: any, b: any) =>
                               DAYS.indexOf(a.day_of_week) - DAYS.indexOf(b.day_of_week)
                             )
                           : frequencyType === 'weekly'
+                          // Sort weekly rows by week number ascending
                           ? [...rows].sort((a: any, b: any) => (a.week_number || 0) - (b.week_number || 0))
                           : rows;
 
@@ -651,14 +683,16 @@ const PatientGoalsProgress: React.FC = () => {
                               borderRadius: '10px', padding: '16px', marginBottom: '16px'
                             }}
                           >
-                            {/* Exercise title and meta */}
+                            {/* Exercise Header */}
                             <div style={{
                               display: 'flex', alignItems: 'center', gap: '10px',
                               marginBottom: '12px', flexWrap: 'wrap'
                             }}>
+                              {/* Exercise title */}
                               <span style={{ fontWeight: '600', fontSize: '15px', color: '#1a1a2e', flex: 1 }}>
                                 {exerciseInfo?.title}
                               </span>
+                              {/* Completed badge — only shown when all sessions are ticked */}
                               {exComplete && (
                                 <span style={{
                                   fontSize: '11px', padding: '2px 10px', borderRadius: '20px',
@@ -667,23 +701,29 @@ const PatientGoalsProgress: React.FC = () => {
                                   ✓ Completed
                                 </span>
                               )}
+
+                              {/* Exercise description */}
                               {exerciseInfo?.description && (
                                 <span style={{ fontSize: '13px', color: '#6c757d' }}>
                                   {exerciseInfo.description}
                                 </span>
                               )}
+
+                              {/* Difficulty level badge */}
                               <span style={{
                                 padding: '3px 10px', borderRadius: '20px',
                                 fontSize: '11px', backgroundColor: '#e0e7ff', color: '#6366f1'
                               }}>
                                 {exerciseInfo?.difficulty_level}
                               </span>
+
+                              {/* Frequency badge */}
                               <span style={{ fontSize: '12px', color: '#6c757d' }}>
                                 🔁 {exerciseInfo?.recommended_frequency}
                               </span>
                             </div>
 
-                            {/* Exercise progress bar — completed ÷ total × 100 */}
+                            {/* Exercise progress bar — completed divide by total × 100 */}
                             {(() => {
                               const exProgress = getExerciseProgress(rows); // percentage (0–100)
                               const exCompleted = rows.filter((r: any) => r.completed).length; // ticked checkboxes
@@ -694,9 +734,11 @@ const PatientGoalsProgress: React.FC = () => {
                                     display: 'flex', justifyContent: 'space-between',
                                     alignItems: 'center', marginBottom: '4px'
                                   }}>
+                                    {/* Session completion count */}
                                     <small style={{ color: '#6c757d', fontSize: '12px' }}>
                                       {exCompleted} of {exTotal} sessions completed
                                     </small>
+                                    {/* Progress percentage — green when completed, purple when in progress */}
                                     <small style={{
                                       color: exProgress === 100 ? '#22c55e' : '#6366f1',
                                       fontWeight: 'bold', fontSize: '12px'
@@ -704,12 +746,14 @@ const PatientGoalsProgress: React.FC = () => {
                                       {exProgress}%
                                     </small>
                                   </div>
+                                  {/* Progress bar — fills based on completed divide total */}
                                   <div style={{
                                     width: '100%', height: '6px', backgroundColor: '#e9ecef',
                                     borderRadius: '3px', overflow: 'hidden'
                                   }}>
                                     <div style={{
                                       width: `${exProgress}%`, height: '100%',
+                                      // Green when completed, purple when in progress
                                       backgroundColor: exProgress === 100 ? '#22c55e' : '#6366f1',
                                       transition: 'width 0.4s ease'
                                     }}></div>
@@ -719,7 +763,9 @@ const PatientGoalsProgress: React.FC = () => {
                             })()}
 
                             {/* DAILY layout */}
+                            {/* Renders a Mon-Sun grid with one checkbox and one difficulty rating per day */}
                             {frequencyType === 'daily' && (() => {
+                              // Get unique week numbers from the rows in ascending order
                               const weekNumbers = sortedRows
                                 .map((r: any) => r.week_number)
                                 .filter((w: number, i: number, arr: number[]) => arr.indexOf(w) === i)
@@ -730,13 +776,16 @@ const PatientGoalsProgress: React.FC = () => {
                                   <table style={{ borderCollapse: 'collapse', fontSize: '13px', width: '100%' }}>
                                     <thead>
                                       <tr>
+                                        {/* Empty header cell for the row label column */}
                                         <th style={{ padding: '6px 12px', width: '80px', textAlign: 'left', color: '#6c757d', fontSize: '12px' }}></th>
+                                        {/* Day column headers — today's column is highlighted in purple */}
                                         {DAY_LABELS.map((label, i) => {
                                           const isToday = DAYS[i] === todayName;
                                           return (
                                             <th key={label} style={{
                                               padding: '6px 12px', textAlign: 'center',
                                               fontWeight: '600', fontSize: '13px', minWidth: '55px',
+                                              // Highlight today's column in purple
                                               color: isToday ? '#6366f1' : '#6c757d',
                                               borderBottom: isToday ? '2px solid #6366f1' : '2px solid transparent'
                                             }}>
@@ -747,11 +796,12 @@ const PatientGoalsProgress: React.FC = () => {
                                       </tr>
                                     </thead>
                                     <tbody>
+                                      {/* One pair of rows (Done + Diff) per week */}
                                       {weekNumbers.map((weekNum: number) => {
                                         const weekRows = sortedRows.filter((r: any) => r.week_number === weekNum);
                                         return (
                                           <React.Fragment key={`week-${weekNum}`}>
-                                            {/* Done row */}
+                                            {/* Done row - checkboxes for each day of this week */}
                                             <tr style={{ borderTop: weekNum > weekNumbers[0] ? '2px solid #e9ecef' : '1px solid #e9ecef' }}>
                                               <td style={{
                                                 padding: '10px 12px', fontWeight: '600',
@@ -760,15 +810,18 @@ const PatientGoalsProgress: React.FC = () => {
                                                 W{weekNum} Done
                                               </td>
                                               {DAY_LABELS.map((_, i) => {
+                                                // Find the row matching this day of the week
                                                 const row = weekRows.find((r: any) => {
                                                   const dayPart = r.day_of_week?.split(' ').pop();
                                                   return dayPart === DAYS[i];
                                                 });
+                                                // Grey out days before the exercise was created
                                                 const isPastDay = isCellBeforeCreation(rows, weekNum, weekNumbers, i);
                                                 return (
                                                   <td key={`done-w${weekNum}-${i}`}
                                                     style={{ padding: '10px 12px', textAlign: 'center', opacity: isPastDay ? 0.4 : 1 }}>
                                                     {row ? (
+                                                      // Checkbox — ticking updates the completed status in the database
                                                       <input
                                                         type="checkbox"
                                                         checked={row.completed}
@@ -785,7 +838,7 @@ const PatientGoalsProgress: React.FC = () => {
                                                 );
                                               })}
                                             </tr>
-                                            {/* Diff row */}
+                                            {/* Diff row — difficulty rating circles for each day of this week */}
                                             <tr style={{ borderTop: '1px solid #f0f0f0' }}>
                                               <td style={{
                                                 padding: '10px 12px', fontWeight: '600',
@@ -803,6 +856,7 @@ const PatientGoalsProgress: React.FC = () => {
                                                   <td key={`diff-w${weekNum}-${i}`}
                                                     style={{ padding: '10px 8px', textAlign: 'center', opacity: isPastDay ? 0.4 : 1, pointerEvents: isPastDay ? 'none' : 'auto' }}>
                                                     {row ? (
+                                                      // Difficulty dropdown — clicking opens the 0-10 rating picker
                                                       <DifficultyDropdown
                                                         currentRating={row.difficulty_rating}
                                                         onSelect={(val) => handleSaveDifficulty(row.row_id, val)}
@@ -823,6 +877,7 @@ const PatientGoalsProgress: React.FC = () => {
                             })()}
 
                             {/* TWICE DAILY layout */}
+                            {/* Renders a Mon-Sun grid with AM and PM sub-columns per day */}
                             {frequencyType === 'twice_daily' && (() => {
                               const weekNumbers = sortedRows
                                 .map((r: any) => r.week_number)
@@ -835,12 +890,14 @@ const PatientGoalsProgress: React.FC = () => {
                                     <thead>
                                       <tr>
                                         <th style={{ padding: '6px 12px', width: '80px' }}></th>
+                                        {/* Each day has two columns — AM and PM */}
                                         {DAY_LABELS.map((label, i) => {
                                           const isToday = DAYS[i] === todayName;
                                           return (
                                             <th key={label} colSpan={2} style={{
                                               padding: '6px 8px', textAlign: 'center',
                                               fontWeight: '600', fontSize: '13px', minWidth: '100px',
+                                              // Highlight today's column in purple
                                               color: isToday ? '#6366f1' : '#6c757d',
                                               borderBottom: isToday ? '2px solid #6366f1' : '2px solid transparent'
                                             }}>
@@ -849,6 +906,7 @@ const PatientGoalsProgress: React.FC = () => {
                                           );
                                         })}
                                       </tr>
+                                      {/* Sub-header row showing AM and PM labels */}
                                       <tr>
                                         <th></th>
                                         {DAY_LABELS.map(label => (
@@ -864,7 +922,7 @@ const PatientGoalsProgress: React.FC = () => {
                                         const weekRows = sortedRows.filter((r: any) => r.week_number === weekNum);
                                         return (
                                           <React.Fragment key={`week-${weekNum}`}>
-                                            {/* Done row */}
+                                            {/* Done row — AM and PM checkboxes for each day */}
                                             <tr style={{ borderTop: weekNum > weekNumbers[0] ? '2px solid #e9ecef' : '1px solid #e9ecef' }}>
                                               <td style={{
                                                 padding: '10px 12px', fontWeight: '600',
@@ -873,6 +931,7 @@ const PatientGoalsProgress: React.FC = () => {
                                                 W{weekNum} Done
                                               </td>
                                               {DAY_LABELS.map((_, i) => {
+                                                // Find the Morning and Afternoon rows for this day
                                                 const morningRow = weekRows.find((r: any) =>
                                                   r.day_of_week?.includes(DAYS[i]) && r.day_of_week?.includes('Morning')
                                                 );
@@ -882,6 +941,7 @@ const PatientGoalsProgress: React.FC = () => {
                                                 const isPastDay = isCellBeforeCreation(rows, weekNum, weekNumbers, i);
                                                 return (
                                                   <React.Fragment key={`done-w${weekNum}-${i}`}>
+                                                    {/* Morning checkbox */}
                                                     <td style={{ padding: '10px 8px', textAlign: 'center', opacity: isPastDay ? 0.4 : 1 }}>
                                                       {morningRow ? (
                                                         <input type="checkbox" checked={morningRow.completed} disabled={isPastDay}
@@ -890,6 +950,7 @@ const PatientGoalsProgress: React.FC = () => {
                                                         />
                                                       ) : <span style={{ color: '#dee2e6' }}>—</span>}
                                                     </td>
+                                                    {/* Afternoon checkbox */}
                                                     <td style={{ padding: '10px 8px', textAlign: 'center', opacity: isPastDay ? 0.4 : 1 }}>
                                                       {afternoonRow ? (
                                                         <input type="checkbox" checked={afternoonRow.completed} disabled={isPastDay}
@@ -902,7 +963,7 @@ const PatientGoalsProgress: React.FC = () => {
                                                 );
                                               })}
                                             </tr>
-                                            {/* Diff row */}
+                                            {/* Diff row — AM and PM difficulty ratings for each day */}
                                             <tr style={{ borderTop: '1px solid #f0f0f0' }}>
                                               <td style={{
                                                 padding: '10px 12px', fontWeight: '600',
@@ -920,6 +981,7 @@ const PatientGoalsProgress: React.FC = () => {
                                                 const isPastDay = isCellBeforeCreation(rows, weekNum, weekNumbers, i);
                                                 return (
                                                   <React.Fragment key={`diff-w${weekNum}-${i}`}>
+                                                    {/* Morning difficulty rating */}
                                                     <td style={{ padding: '10px 8px', textAlign: 'center', opacity: isPastDay ? 0.4 : 1, pointerEvents: isPastDay ? 'none' : 'auto' }}>
                                                       {morningRow ? (
                                                         <DifficultyDropdown currentRating={morningRow.difficulty_rating}
@@ -928,6 +990,7 @@ const PatientGoalsProgress: React.FC = () => {
                                                         />
                                                       ) : <span style={{ color: '#dee2e6' }}>—</span>}
                                                     </td>
+                                                    {/* Afternoon difficulty rating */}
                                                     <td style={{ padding: '10px 8px', textAlign: 'center', opacity: isPastDay ? 0.4 : 1, pointerEvents: isPastDay ? 'none' : 'auto' }}>
                                                       {afternoonRow ? (
                                                         <DifficultyDropdown currentRating={afternoonRow.difficulty_rating}
@@ -950,12 +1013,14 @@ const PatientGoalsProgress: React.FC = () => {
                             })()}
 
                             {/* WEEKLY layout */}
+                            {/* Renders a simple Week 1 / Week 2 / Week 3 grid with one checkbox per week */}
                             {frequencyType === 'weekly' && (
                               <div style={{ overflowX: 'auto' }}>
                                 <table style={{ borderCollapse: 'collapse', fontSize: '13px', width: '100%' }}>
                                   <thead>
                                     <tr>
                                       <th style={{ padding: '6px 12px', width: '80px' }}></th>
+                                      {/* One column per week */}
                                       {sortedRows.map((row: any) => (
                                         <th key={`week-header-${row.row_id}`} style={{
                                           padding: '6px 12px', textAlign: 'center',
@@ -968,10 +1033,12 @@ const PatientGoalsProgress: React.FC = () => {
                                     </tr>
                                   </thead>
                                   <tbody>
+                                    {/* Done row — one checkbox per week */}
                                     <tr style={{ borderTop: '1px solid #e9ecef' }}>
                                       <td style={{ padding: '10px 12px', fontWeight: '600', color: '#6c757d', fontSize: '12px', textTransform: 'uppercase' }}>Done</td>
                                       {sortedRows.map((row: any) => (
                                         <td key={`done-${row.row_id}`} style={{ padding: '10px 12px', textAlign: 'center' }}>
+                                          {/* Checkbox — ticking updates the completed status in the database */}
                                           <input type="checkbox" checked={row.completed}
                                             onChange={() => handleToggleDay(row.row_id, row.completed)}
                                             style={{ width: '18px', height: '18px', accentColor: '#6366f1', cursor: 'pointer' }}
@@ -979,6 +1046,7 @@ const PatientGoalsProgress: React.FC = () => {
                                         </td>
                                       ))}
                                     </tr>
+                                    {/* Diff row — one difficulty rating per week */}
                                     <tr style={{ borderTop: '1px solid #e9ecef' }}>
                                       <td style={{ padding: '10px 12px', fontWeight: '600', color: '#6c757d', fontSize: '12px', textTransform: 'uppercase' }}>Diff</td>
                                       {sortedRows.map((row: any) => (
@@ -996,13 +1064,16 @@ const PatientGoalsProgress: React.FC = () => {
                             )}
 
                             {/* OTHER layout */}
+                            {/* Fallback layout for any exercise rows that don't match daily, twice daily or weekly */}
                             {frequencyType === 'other' && sortedRows.map((row: any) => (
                               <div key={`other-${row.row_id}`} style={{
                                 display: 'flex', alignItems: 'center', gap: '16px', padding: '12px',
+                                // Green background when completed
                                 backgroundColor: row.completed ? '#f0fdf4' : '#fff',
                                 borderRadius: '8px',
                                 border: `1px solid ${row.completed ? '#bbf7d0' : '#e9ecef'}`
                               }}>
+                                {/* Checkbox */}
                                 <input type="checkbox" checked={row.completed}
                                   onChange={() => handleToggleDay(row.row_id, row.completed)}
                                   style={{ width: '20px', height: '20px', accentColor: '#6366f1', cursor: 'pointer' }}
@@ -1010,6 +1081,7 @@ const PatientGoalsProgress: React.FC = () => {
                                 <span style={{ fontSize: '14px', color: '#6c757d' }}>
                                   {row.completed ? '✅ Completed' : 'Mark as done'}
                                 </span>
+                                {/* Difficulty rating */}
                                 <DifficultyDropdown currentRating={row.difficulty_rating}
                                   onSelect={(val) => handleSaveDifficulty(row.row_id, val)}
                                   onClear={() => handleClearDifficulty(row.row_id)}
