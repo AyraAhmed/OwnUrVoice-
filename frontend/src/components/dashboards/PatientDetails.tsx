@@ -210,21 +210,27 @@ const PatientDetails: React.FC = () => {
   return (
     <div className="patient-details-page">
 
-      {/* Navigation Bar */}
+      {/* Navigation Bar — displays the platform logo, welcome message and logout button */}
       <nav className="dashboard-nav">
         <div className="nav-content">
+        {/* Platform logo */}
         <img src="/logo.jpg" alt="OwnUrVoice Logo" style={{ height: '70px', width: 'auto' }} />
           <div className="nav-right">
+            {/* Display the logged-in therapist's full name */}
             <span className="welcome-text">Welcome, {user?.firstName} {user?.lastName}</span>
+            {/* Logout button — clears session data and redirects to login */}
             <button onClick={handleLogout} className="logout-btn">Logout</button>
           </div>
         </div>
       </nav>
 
+      {/* Main Content Container */}
       <div className="details-container">
 
-        {/* Sidebar */}
+        {/* Left Sidebar Navigation */}
         <aside className="sidebar">
+
+          {/* Dashboard — navigates back to the main dashboard */}
           <div className="sidebar-item" onClick={handleBackToDashboard}>
             <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <rect x="3" y="3" width="7" height="7"/>
@@ -235,6 +241,7 @@ const PatientDetails: React.FC = () => {
             <span>Dashboard</span>
           </div>
 
+          {/* Patient Details — active page, highlighted in purple */}
           <div className="sidebar-item active">
             <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -243,6 +250,7 @@ const PatientDetails: React.FC = () => {
             <span>Patient Details</span>
           </div>
 
+          {/* Goals & Exercises — navigates to the goals and exercises page */}
           <div className="sidebar-item" onClick={() => navigate('/therapist/goals')} style={{ cursor: 'pointer' }}>
             <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <circle cx="12" cy="12" r="10"/>
@@ -251,6 +259,7 @@ const PatientDetails: React.FC = () => {
             <span>Goals & Exercises</span>
           </div>
 
+          {/* Resources — navigates to the resources page */}
           <div className="sidebar-item">
             <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
@@ -260,14 +269,16 @@ const PatientDetails: React.FC = () => {
           </div>
         </aside>
 
-        {/* Main Panel */}
+        {/* Main Panel — contains the patient details content */}
         <main className="details-panel">
+          {/* Page Header */}
           <div className="panel-header">
             <h2 className="panel-title">Patient Details</h2>
           </div>
 
-          {/* Patient Info Card */}
+          {/* Patient Info Card — displays the patient's name, email and join date */}
           <div className="patient-info-card">
+            {/* Patient avatar — placeholder icon */}
             <div className="patient-avatar">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -275,10 +286,13 @@ const PatientDetails: React.FC = () => {
               </svg>
             </div>
             <div className="patient-info-text">
+              {/* Patient full name */}
               <h3 className="patient-name">
                 {patientInfo?.first_name} {patientInfo?.last_name}
               </h3>
+              {/* Patient email */}
               <p className="patient-email">{patientInfo?.email}</p>
+              {/* Therapy start date — formatted to GB format */}
               <div className="patient-joined">
                 <svg className="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -300,6 +314,7 @@ const PatientDetails: React.FC = () => {
                 </svg>
                 <h3 className="section-title">Progress & Goals</h3>
               </div>
+
               {/* Filter buttons — highlight the currently active tab */}
               <div style={{ display: 'flex', gap: '8px' }}>
                 {(['all', 'in-progress', 'completed'] as const).map(f => (
@@ -309,6 +324,7 @@ const PatientDetails: React.FC = () => {
                     style={{
                       padding: '5px 14px', borderRadius: '20px', fontSize: '12px',
                       fontWeight: '500', cursor: 'pointer', border: '1px solid',
+                      // Active filter gets purple background, inactive stays white
                       borderColor: goalFilter === f ? '#6366f1' : '#dee2e6',
                       backgroundColor: goalFilter === f ? '#6366f1' : '#fff',
                       color: goalFilter === f ? '#fff' : '#6c757d',
@@ -320,7 +336,8 @@ const PatientDetails: React.FC = () => {
                 ))}
               </div>
             </div>
-
+            
+            {/* Empty state — shown when no goals have been assigned yet */}
             {goals.length === 0 ? (
               <p style={{ color: '#6c757d', padding: '16px 0' }}>No goals set yet.</p>
             ) : (() => {
@@ -342,7 +359,7 @@ const PatientDetails: React.FC = () => {
               <div className="goals-list">
                 {filteredGoals.map((goal, index) => {
                   const progress = getGoalProgress(goal.goal_id);
-                  // Flag used to switch the card to green styling and show the completed badge
+                  // Flag used to switch the card to green styling and show the completed badge when goal is fully completed
                   const goalComplete = progress === 100;
                   return (
                     <div
@@ -350,12 +367,15 @@ const PatientDetails: React.FC = () => {
                       className="goal-item"
                       style={{
                         animationDelay: `${index * 0.1}s`,
+                        // Turn the card green when the goal is fully completed
                         ...(goalComplete ? { backgroundColor: '#f0fdf4', borderColor: '#86efac' } : {})
                       }}
                     >
                       <div className="goal-header">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {/* Goal description */}
                           <h4 className="goal-title" style={{ margin: 0 }}>{goal.goal_description}</h4>
+                          {/* Completed badge — only shown when progress reaches 100% */}
                           {goalComplete && (
                             <span style={{
                               fontSize: '11px', padding: '2px 10px', borderRadius: '20px',
@@ -365,15 +385,18 @@ const PatientDetails: React.FC = () => {
                             </span>
                           )}
                         </div>
+                        {/* Progress percentage — green when completed, purple when in progress */}
                         <span className="goal-percentage" style={{ color: goalComplete ? '#22c55e' : undefined }}>
                           {progress}%
                         </span>
                       </div>
+                      {/* Goal target date and priority */}
                       <p className="goal-description">
                         Target: {formatDate(goal.target_date)}
                         &nbsp;·&nbsp;
                         Priority: {goal.priority}
                       </p>
+                       {/* Goal progress bar — fills based on completed rows divide by total rows */}
                       <div className="progress-bar">
                         <div
                           className="progress-fill"
@@ -397,6 +420,7 @@ const PatientDetails: React.FC = () => {
               <h3 className="section-title">Assigned Exercises</h3>
             </div>
 
+            {/* Empty state — shown when no exercises have been assigned yet */}
             {allExercises.length === 0 ? (
               <p style={{ color: '#6c757d', padding: '16px 0' }}>No exercises assigned yet.</p>
             ) : (() => {
@@ -416,6 +440,7 @@ const PatientDetails: React.FC = () => {
               );
               return (
               <div className="exercises-list">
+                {/* Loop through each exercise and render a card */}
                 {filteredExercises.map((item, index) => (
                   <div
                     key={item.exercise_id}
@@ -423,11 +448,14 @@ const PatientDetails: React.FC = () => {
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     <div className="exercise-content">
+                      {/* Exercise Header — title and status badge */}
                       <div className="exercise-header">
+                        {/* Exercise title */}
                         <h4 className="exercise-title">{item.exercise?.title}</h4>
                         {/* Status badge — Pending, In Progress or Completed */}
                         <span className={`status-badge ${item.status === 'completed' ? 'completed' : 'pending'}`}
                           style={{
+                            // Blue background for in-progress, default for others
                             backgroundColor: item.status === 'completed'
                               ? undefined
                               : item.status === 'in-progress'
@@ -436,6 +464,7 @@ const PatientDetails: React.FC = () => {
                             color: item.status === 'in-progress' ? '#2563eb' : undefined
                           }}
                         >
+                          {/* Display the correct label based on the exercise status */}
                           {item.status === 'completed'
                             ? 'Completed'
                             : item.status === 'in-progress'
@@ -443,10 +472,11 @@ const PatientDetails: React.FC = () => {
                             : 'Pending'}
                         </span>
                       </div>
-
+                      
+                      {/* Exercise description */}
                       <p className="exercise-description">{item.exercise?.description}</p>
 
-                      {/* Progress count */}
+                      {/* Exercise Footer- Progress count, session completion count and frequency  */}
                       <div className="exercise-footer">
                         <div className="exercise-due">
                           <svg className="due-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -455,6 +485,7 @@ const PatientDetails: React.FC = () => {
                             <line x1="8" y1="2" x2="8" y2="6"/>
                             <line x1="3" y1="10" x2="21" y2="10"/>
                           </svg>
+                          {/* Session completion count and frequency */}
                           <span>
                             {item.completedRows} of {item.totalRows} sessions completed
                             &nbsp;·&nbsp;
