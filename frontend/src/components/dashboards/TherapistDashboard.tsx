@@ -417,22 +417,26 @@ const TherapistDashboard: React.FC = () => {
   return (
     <div className="therapist-dashboard">
 
-      {/* Navigation Bar */}
+      {/* Navigation Bar - displays the platform logo, welcome message and logout button*/}
       <nav className="dashboard-nav">
         <div className="nav-content">
+          {/* Platform logo - links back to the dashboard */}
           <img src="/logo.jpg" alt="OwnUrVoice Logo" className="nav-logo" />
           <div className="nav-right">
+            {/* Display the logged-in therapist's full name */}
             <span className="welcome-text">Welcome, {user?.firstName} {user?.lastName}</span>
+            {/* Logout button - clears session data and redirects to login */}
             <button onClick={handleLogout} className="logout-btn">Logout</button>
           </div>
         </div>
       </nav>
 
-      {/* Main Content */}
+      {/* Main Content Wrapper */}
       <div className="dashboard-container">
 
-        {/* Left Sidebar */}
+        {/* Left Sidebar - navigation between dashboard sections */}
         <aside className="sidebar">
+          {/* Dashboard - active page, highlighted in purple */}
           <div className="sidebar-item active">
             <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <rect x="3" y="3" width="7" height="7"/>
@@ -442,7 +446,7 @@ const TherapistDashboard: React.FC = () => {
             </svg>
             <span>Dashboard</span>
           </div>
-
+          {/* Patient Details - navigates to the all patients page */}
           <div className="sidebar-item" onClick={() => navigate('/therapist/patients')} style={{ cursor: 'pointer' }}>
             <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -450,7 +454,7 @@ const TherapistDashboard: React.FC = () => {
             </svg>
             <span>Patient Details</span>
           </div>
-
+          {/* Goals & Exercises - navigates to the goals and exercises page */}
           <div className="sidebar-item" onClick={() => navigate('/therapist/goals')} style={{ cursor: 'pointer' }}>
             <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <circle cx="12" cy="12" r="10"/>
@@ -458,7 +462,7 @@ const TherapistDashboard: React.FC = () => {
             </svg>
             <span>Goals & Exercises</span>
           </div>
-
+          {/* Resources - navigates to the resources page */}
           <div className="sidebar-item" onClick={() => navigate('/therapist/resources')} style={{ cursor: 'pointer' }}>
             <svg className="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
@@ -468,15 +472,17 @@ const TherapistDashboard: React.FC = () => {
           </div>
         </aside>
 
-        {/* Main Panel */}
+        {/* Main Panel - contains the dashboard content */}
         <main className="main-panel">
+          {/* Page Header */}
           <div className="panel-header">
             <h2 className="panel-title">Dashboard</h2>
             <p className="panel-subtitle">View and manage your patient sessions</p>
           </div>
 
-          {/* Quick Actions */}
+          {/* Quick Actions - primary action buttons for the dashboard */}
           <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', padding: '0 20px' }}>
+            {/* Create a Session button - opens the link patient modal */}
             <button
               onClick={() => setShowModal(true)}
               style={{
@@ -496,7 +502,7 @@ const TherapistDashboard: React.FC = () => {
             >
               + Create a Session
             </button>
-
+              {/* View All Patients button - navigates to the patients list page */}
             <button
               onClick={() => navigate('/therapist/patients')}
               style={{
@@ -518,17 +524,17 @@ const TherapistDashboard: React.FC = () => {
             </button>
           </div>
 
-          {/* Error Message */}
+          {/* Error Message - only shown if session loading fails */}
           {error && (
             <div className="alert alert-danger mx-3" role="alert">
               {error}
             </div>
           )}
 
-          {/* Sessions Card */}
+          {/* Sessions Card - displays the list of recent sessions */}
           <div className="sessions-card">
 
-            {/* Card header with filter dropdown */}
+            {/* Card header with title and filter dropdown */}
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -537,7 +543,7 @@ const TherapistDashboard: React.FC = () => {
             }}>
               <h3 className="card-title" style={{ margin: 0 }}>Recent Sessions</h3>
 
-              {/* Session filter dropdown */}
+              {/* Session filter dropdown - filters sessions by time period */}
               <select
                 value={sessionFilter}
                 onChange={e => setSessionFilter(e.target.value)}
@@ -557,18 +563,21 @@ const TherapistDashboard: React.FC = () => {
                 <option value="upcoming">Upcoming</option>
               </select>
             </div>
-
+            
+            {/* Empty state - shown when no sessions exist */}
             {sessions.length === 0 ? (
               <div style={{ padding: '40px', textAlign: 'center', color: '#6c757d' }}>
                 <p>No sessions yet. Click "Create a Session" to get started!</p>
               </div>
             ) : getFilteredSessions().length === 0 ? (
-              // Show when filter returns no results
+              // Empty state - shown when filter returns no results
               <div style={{ padding: '40px', textAlign: 'center', color: '#6c757d' }}>
                 <p>No sessions found for this filter.</p>
               </div>
             ) : (
+              // Sessions Table
               <div className="sessions-table">
+                {/* Table Header Row*/}
                 <div className="table-header">
                   <div className="th">PATIENT</div>
                   <div className="th">DATE</div>
@@ -577,28 +586,36 @@ const TherapistDashboard: React.FC = () => {
                   <div className="th">ACTIONS</div>
                 </div>
 
+                {/* Table Body - one row per session */}
                 <div className="table-body">
                   {getFilteredSessions().map((session, index) => (
                     <div
                     key={session.session_id}
                     className="table-row"
                     style={{ animationDelay: `${index * 0.1}s`, position: 'relative' }}
+                    // Show edit/delete buttons on hover 
                     onMouseEnter={(e) => {
                       const btns = e.currentTarget.querySelector('.hover-actions') as HTMLElement;
                       if (btns) btns.style.opacity = '1';
                     }}
+                    // Hide edit/delete buttons when mouse leaves 
                     onMouseLeave={(e) => {
                       const btns = e.currentTarget.querySelector('.hover-actions') as HTMLElement;
                       if (btns) btns.style.opacity = '0';
                     }}
                   >
+                    {/* Patient name */}
                       <div className="td patient-name">
                         {session.patient?.first_name} {session.patient?.last_name}
                       </div>
+                      {/* Session date - formatted to GB format */}
                       <div className="td">{formatDate(session.session_date)}</div>
+                      {/* Session time - trimmed to HH:MM */}
                       <div className="td">{formatTime(session.session_time)}</div>
+                      {/* Session type */}
                       <div className="td">{session.session_type || 'Assessment'}</div>
 
+                      {/* Actions column */}
                       <div className="td">
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
 
@@ -608,11 +625,11 @@ const TherapistDashboard: React.FC = () => {
                         style={{
                           display: 'flex',
                           gap: '6px',
-                          opacity: 0,
+                          opacity: 0, // Hidden by default, shown on hover
                           transition: 'opacity 0.2s ease'
                         }}
                       >
-                        {/* Edit button — amber outline, white background */}
+                        {/* Edit button — amber outline, white background, opens edit modal */}
                         <button
                           onClick={() => handleEditClick(session)}
                           title="Edit session"
@@ -638,7 +655,7 @@ const TherapistDashboard: React.FC = () => {
                           </svg>
                         </button>
 
-                        {/* Delete button — red outline, white background */}
+                        {/* Delete button — red outline, white background, opens delete confirmation modal */}
                         <button
                           onClick={() => handleDeleteClick(session)}
                           title="Delete session"
@@ -668,7 +685,7 @@ const TherapistDashboard: React.FC = () => {
                         </button>
                       </div>
 
-                      {/* View button — always visible */}
+                      {/* View button — always visible, navigates to patient details */}
                       <button
                         className="view-btn"
                         onClick={() => handleViewPatient(session)}
@@ -691,22 +708,28 @@ const TherapistDashboard: React.FC = () => {
         </main>
       </div>
 
-      {/* Link Patient Modal */}
+      {/* Create a Session Modal */}
+      {/* Opens when therapist clicks '+ Create a Session' button */}
       {showModal && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setShowModal(false)}>
+        // Clicking outside the modal closes it
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setShowModal(false)}> 
           <div className="modal-dialog modal-lg modal-dialog-scrollable" onClick={(e) => e.stopPropagation()}>
             <div className="modal-content">
+              {/* Modal Header */}
               <div className="modal-header">
                 <h5 className="modal-title">Create a Session</h5>
+                {/* Close button - dismisses the modal without saving */}
                 <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
               </div>
               <div className="modal-body">
+                {/* Error message - shown if validation or linking fails */}
                 {formError && (
                   <div className="alert alert-danger alert-dismissible fade show">
                     {formError}
                     <button type="button" className="btn-close" onClick={() => setFormError(null)}></button>
                   </div>
                 )}
+                {/* Success message - shown when patient is successfully linked */}
                 {successMessage && (
                   <div className="alert alert-success alert-dismissible fade show">
                     {successMessage}
@@ -714,11 +737,13 @@ const TherapistDashboard: React.FC = () => {
                   </div>
                 )}
 
+                {/* Info banner - reminds therapist than patient must register first */}
                 <div className="alert alert-info">
                   <strong>Note:</strong> The patient must register first before you can link them. Ask your patient to create an account, then enter their email here.
                 </div>
 
                 <form onSubmit={handleLinkPatient}>
+                  {/* Patient Email Input - used to search for the patient in the database */}
                   <div className="mb-3">
                     <label className="form-label">Patient Email <span className="text-danger">*</span></label>
                     <input
@@ -734,8 +759,10 @@ const TherapistDashboard: React.FC = () => {
 
                   <hr />
 
+                  {/* Session Details Section */}
                   <h6 className="mb-3">Session Details</h6>
 
+                  {/* Session Date - defaults to today, cannot be set in the past */}
                   <div className="row">
                     <div className="col-md-6 mb-3">
                       <label className="form-label">Session Date <span className="text-danger">*</span></label>
@@ -749,6 +776,7 @@ const TherapistDashboard: React.FC = () => {
                       />
                     </div>
 
+                    {/* Session Time - minimum time enforces if booking for today */}
                     <div className="col-md-6 mb-3">
                       <label className="form-label">Session Time <span className="text-danger">*</span></label>
                       <input
@@ -762,6 +790,7 @@ const TherapistDashboard: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Session type dropdown - defaults to initial assessment */}
                   <div className="mb-3">
                     <label className="form-label">Session Type <span className="text-danger">*</span></label>
                     <select
@@ -777,6 +806,7 @@ const TherapistDashboard: React.FC = () => {
                     </select>
                   </div>
 
+                  {/* Location input - optional, defaults to 'To be determined' if left empty */}
                   <div className="mb-3">
                     <label className="form-label">Location</label>
                     <input
@@ -789,7 +819,9 @@ const TherapistDashboard: React.FC = () => {
                     <small className="text-muted">Leave blank for "To be determined"</small>
                   </div>
 
+                  {/* Modal footer - cancel and submit buttons */}
                   <div className="modal-footer">
+                    {/* Cancel button - closes modal without saving */}
                     <button
                       type="button"
                       className="btn btn-secondary"
@@ -798,6 +830,8 @@ const TherapistDashboard: React.FC = () => {
                     >
                       Cancel
                     </button>
+
+                    {/* Submit button - disabled whole loading to prevent double submissions */}
                     <button
                       type="submit"
                       className="btn btn-primary"
@@ -821,28 +855,34 @@ const TherapistDashboard: React.FC = () => {
       )}
 
       {/* Edit Session Modal */}
+      {/* Opens when therapist clicks the edit icon on a session row  */}
       {showEditModal && editSession && (
         <div
           className="modal show d-block"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          // Clicking outside the modal closes it
           onClick={() => setShowEditModal(false)}
         >
           <div className="modal-dialog modal-lg modal-dialog-scrollable" onClick={(e) => e.stopPropagation()}>
             <div className="modal-content">
+              {/* Modal Header - shows the patient's name for context */}
               <div className="modal-header">
                 <h5 className="modal-title">
                   Edit Session — {editSession.patient?.first_name} {editSession.patient?.last_name}
                 </h5>
+                {/* Close button - dismisses the modal without saving */}
                 <button type="button" className="btn-close" onClick={() => setShowEditModal(false)}></button>
               </div>
 
               <div className="modal-body">
+                {/* Error message - shown if validation or update fails */}
                 {editError && (
                   <div className="alert alert-danger alert-dismissible fade show">
                     {editError}
                     <button type="button" className="btn-close" onClick={() => setEditError(null)}></button>
                   </div>
                 )}
+                {/* Success message - shown when session is successfully updated */}
                 {editSuccess && (
                   <div className="alert alert-success">
                     {editSuccess}
@@ -851,6 +891,8 @@ const TherapistDashboard: React.FC = () => {
 
                 <form onSubmit={handleEditSubmit}>
                   <div className="row">
+
+                    {/* Session Date - pre-filled with the existing session date */}
                     <div className="col-md-6 mb-3">
                       <label className="form-label">Session Date <span className="text-danger">*</span></label>
                       <input
@@ -862,6 +904,7 @@ const TherapistDashboard: React.FC = () => {
                       />
                     </div>
 
+                    {/* Session Time - pre-filled with the existing session time */}
                     <div className="col-md-6 mb-3">
                       <label className="form-label">Session Time <span className="text-danger">*</span></label>
                       <input
@@ -874,6 +917,7 @@ const TherapistDashboard: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Session Type dropdown - pre-filled with the existing session type */}
                   <div className="mb-3">
                     <label className="form-label">Session Type <span className="text-danger">*</span></label>
                     <select
@@ -889,6 +933,7 @@ const TherapistDashboard: React.FC = () => {
                     </select>
                   </div>
 
+                  {/* Location input - pre-filled with the existing location */}
                   <div className="mb-3">
                     <label className="form-label">Location</label>
                     <input
@@ -901,7 +946,9 @@ const TherapistDashboard: React.FC = () => {
                     <small className="text-muted">Leave blank for "To be determined"</small>
                   </div>
 
+                  {/* Modal Footer - cancel and save changes buttons */}
                   <div className="modal-footer">
+                    {/* Cancel button - closes modal without saving */}
                     <button
                       type="button"
                       className="btn btn-secondary"
@@ -910,6 +957,8 @@ const TherapistDashboard: React.FC = () => {
                     >
                       Cancel
                     </button>
+
+                    {/* Save changes button - amber colour to indicate an update action */}
                     <button
                       type="submit"
                       className="btn btn-warning text-white"
@@ -933,14 +982,17 @@ const TherapistDashboard: React.FC = () => {
       )}
 
       {/* Delete Confirmation Modal */}
+      {/* Opens when therapist clicks the delete icon on a session row*/}
       {showDeleteConfirm && sessionToDelete && (
         <div
           className="modal show d-block"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          // Clicking outside the modal closes it without deleting
           onClick={() => setShowDeleteConfirm(false)}
         >
           <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="modal-content">
+              {/* Modal Header - red title to signal a destructive action */}
               <div className="modal-header">
                 <h5 className="modal-title text-danger">Delete Session</h5>
                 <button type="button" className="btn-close" onClick={() => setShowDeleteConfirm(false)}></button>
@@ -948,6 +1000,7 @@ const TherapistDashboard: React.FC = () => {
 
               <div className="modal-body">
                 <p>Are you sure you want to permanently delete this session?</p>
+                {/* Session summary card - shows the patient name, date, time and type for confirmation */}
                 <div style={{
                   backgroundColor: '#f8f9fa',
                   borderRadius: '8px',
@@ -962,12 +1015,16 @@ const TherapistDashboard: React.FC = () => {
                     {formatDate(sessionToDelete.session_date)} at {formatTime(sessionToDelete.session_time)} · {sessionToDelete.session_type}
                   </p>
                 </div>
+
+                {/* Warning message - reminds therapist this action cannot be undone */}
                 <p style={{ marginTop: '16px', color: '#dc3545', fontSize: '14px' }}>
                   ⚠️ This action cannot be undone.
                 </p>
               </div>
 
+              {/* Modal Footer — Cancel and Confirm Delete buttons */}
               <div className="modal-footer">
+                {/* Cancel button — closes modal without deleting */}
                 <button
                   type="button"
                   className="btn btn-secondary"
@@ -976,6 +1033,8 @@ const TherapistDashboard: React.FC = () => {
                 >
                   Cancel
                 </button>
+                
+                {/* Confirm Delete button — red to signal a destructive action */}
                 <button
                   type="button"
                   className="btn btn-danger"
