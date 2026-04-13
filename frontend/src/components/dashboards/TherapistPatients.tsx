@@ -368,7 +368,7 @@ const TherapistPatients: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* View Deatils Button */}
+                    {/* View Details Button */}
                     <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #dee2e6' }}>
                       <button 
                         className="btn btn-sm btn-primary w-100"
