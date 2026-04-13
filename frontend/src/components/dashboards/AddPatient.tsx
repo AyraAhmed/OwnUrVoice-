@@ -11,11 +11,11 @@ const AddPatient: React.FC = () => {
   const navigate = useNavigate();
 
   // UI state management
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false); // Controls the loading spinner
+  const [error, setError] = useState<string | null>(null); // Stores error messages 
+  const [successMessage, setSuccessMessage] = useState<string | null>(null); // Stores success messages
 
-  // form state
+  // Form state - tracks all input field values 
   const [formData, setFormData] = useState({
     username: '',
     firstName: '',
@@ -24,11 +24,10 @@ const AddPatient: React.FC = () => {
     phoneNumber: '',
     email: '',
     patientProfile: '',
-    preferredContactMethod: 'email',
+    preferredContactMethod: 'email', // Default contact method
   });
 
-  // Authentication & authorisation 
-
+  
   // Retrieve session data from local storage 
   const userDataString = localStorage.getItem('userData');
   const userData = userDataString ? JSON.parse(userDataString) : null;
@@ -53,7 +52,7 @@ const AddPatient: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [e.target.name]: e.target.value, // Dynamically update only the changed field
     });
   };
 
@@ -62,18 +61,18 @@ const AddPatient: React.FC = () => {
    * Validates input, formats data for the DB, and handles the API call
    */
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); // Prevent the browser from reloading the page
     setError(null);
     setSuccessMessage(null);
 
-    // Validation
+    // Validation — check all required fields are filled
     if (!formData.username || !formData.firstName || !formData.lastName || 
         !formData.dateOfBirth || !formData.phoneNumber || !formData.email) {
       setError('Please fill in all required fields');
       return;
     }
 
-    // Email validation
+    // Email validation using a Regular Expression
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setError('Please enter a valid email address');
@@ -111,9 +110,10 @@ const AddPatient: React.FC = () => {
         preferred_contact_method: formData.preferredContactMethod,
       };
 
-      // Retrieve correct user_id from session_data 
+      // Retrieve the correct therapist ID from the session data
       const userId = userData.user_id || userData.id;
 
+      // Create the patient record and their first session in the database
       const result = await createPatientWithSession(patientData, userId);
 
       setSuccessMessage(`Patient ${formData.firstName} ${formData.lastName} added successfully!`);
@@ -131,7 +131,7 @@ const AddPatient: React.FC = () => {
       });
 
       // Visual feedback before navigating away
-      // Redirect after 2 seconds
+      // Redirect to patients list after 2 seconds so therapist can see the success message
       setTimeout(() => {
         navigate('/therapist/patients');
       }, 2000);
@@ -140,10 +140,12 @@ const AddPatient: React.FC = () => {
       console.error('Error adding patient:', err);
       setError(err.message || 'Failed to add patient. Please try again.');
     } finally {
+      // Always stop the loading spinner regardless of success or failure
       setLoading(false);
     }
   };
 
+  // Navigate back to the dashboard if the therapist cancels
   const handleCancel = () => {
     navigate('/therapist-dashboard');
   };
@@ -152,16 +154,19 @@ const AddPatient: React.FC = () => {
   return (
     <div className="dashboard-container">
       
-      {/* Top Navigation */}
+      {/* Navigation Bar — displays the platform logo, therapist name and logout button */}
       <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
         <div className="container-fluid">
+          {/* Platform logo — clicking navigates back to the dashboard */}
           <a className="navbar-brand" href="#" onClick={() => navigate('/therapist-dashboard')}>
             OwnUrVoice
           </a>
           <div className="d-flex align-items-center">
+            {/* Display the logged-in therapist's full name */}
             <span className="text-white me-3">
               {userData?.first_name} {userData?.last_name}
             </span>
+            {/* Logout button — clears session data and redirects to login */}
             <button className="btn btn-outline-light" onClick={() => {
               localStorage.removeItem('userData');
               navigate('/login');
@@ -175,11 +180,15 @@ const AddPatient: React.FC = () => {
       <div className="container-fluid py-4">
         <div className="row justify-content-center">
           <div className="col-lg-8">
+
+            {/* Page Header */}
             <div className="d-flex justify-content-between align-items-center mb-4">
               <div>
                 <h1>Add New Patient</h1>
                 <p className="text-muted">Enter patient information to create a new record</p>
               </div>
+
+              {/* Cancel button — navigates back to the dashboard without saving */}
               <button 
                 className="btn btn-outline-secondary"
                 onClick={handleCancel}
@@ -189,6 +198,7 @@ const AddPatient: React.FC = () => {
               </button>
             </div>
 
+            {/* Error message — shown if validation or submission fails */}
             {error && (
               <div className="alert alert-danger alert-dismissible fade show" role="alert">
                 <i className="bi bi-exclamation-triangle-fill me-2"></i>
@@ -197,6 +207,7 @@ const AddPatient: React.FC = () => {
               </div>
             )}
 
+            {/* Success message — shown when patient is successfully added */}
             {successMessage && (
               <div className="alert alert-success alert-dismissible fade show" role="alert">
                 <i className="bi bi-check-circle-fill me-2"></i>
@@ -209,13 +220,14 @@ const AddPatient: React.FC = () => {
               <div className="card-body">
                 <form onSubmit={handleSubmit}>
 
-                  {/* Personal Information */}
+                  {/* Personal Information Section */}
                   <div className="mb-4">
                     <h5 className="card-title mb-3">
                       <i className="bi bi-person-badge me-2"></i>
                       Personal Information
                     </h5>
                     
+                    {/* Username input */}
                     <div className="mb-3">
                       <label className="form-label">
                         Username <span className="text-danger">*</span>
@@ -232,6 +244,7 @@ const AddPatient: React.FC = () => {
                     </div>
 
                     <div className="row">
+                      {/* First Name input */}
                       <div className="col-md-6 mb-3">
                         <label className="form-label">
                           First Name <span className="text-danger">*</span>
@@ -246,7 +259,8 @@ const AddPatient: React.FC = () => {
                           required
                         />
                       </div>
-
+                      
+                       {/* Last Name input */}
                       <div className="col-md-6 mb-3">
                         <label className="form-label">
                           Last Name <span className="text-danger">*</span>
@@ -264,6 +278,7 @@ const AddPatient: React.FC = () => {
                     </div>
 
                     <div className="row">
+                      {/* Date of Birth input — cannot be set in the future */}
                       <div className="col-md-6 mb-3">
                         <label className="form-label">
                           Date of Birth <span className="text-danger">*</span>
@@ -279,6 +294,7 @@ const AddPatient: React.FC = () => {
                         />
                       </div>
 
+                      {/* Phone Number input — UK format */}
                       <div className="col-md-6 mb-3">
                         <label className="form-label">
                           Phone Number <span className="text-danger">*</span>
@@ -298,6 +314,7 @@ const AddPatient: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* Email Address input */}
                     <div className="mb-3">
                       <label className="form-label">
                         Email Address <span className="text-danger">*</span>
@@ -313,6 +330,7 @@ const AddPatient: React.FC = () => {
                       />
                     </div>
 
+                    {/* Preferred Contact Method dropdown */}
                     <div className="mb-3">
                       <label className="form-label">
                         Preferred Contact Method
@@ -329,6 +347,7 @@ const AddPatient: React.FC = () => {
                       </select>
                     </div>
 
+                    {/* Patient Profile Notes — optional free text field */}
                     <div className="mb-3">
                       <label className="form-label">
                         Patient Profile / Notes
@@ -349,6 +368,7 @@ const AddPatient: React.FC = () => {
 
                   {/* Action Buttons */}
                   <div className="d-flex gap-2 justify-content-end">
+                    {/* Cancel button — navigates back without saving */}
                     <button
                       type="button"
                       className="btn btn-outline-secondary"
@@ -358,6 +378,8 @@ const AddPatient: React.FC = () => {
                       <i className="bi bi-x-circle me-2"></i>
                       Cancel
                     </button>
+
+                     {/* Submit button — disabled while loading to prevent double submissions */}
                     <button
                       type="submit"
                       className="btn btn-primary"
@@ -380,7 +402,7 @@ const AddPatient: React.FC = () => {
               </div>
             </div>
 
-            {/* Info Box */}
+            {/* Info Box — explains what happens after the patient is added */}
             <div className="card mt-3 bg-light">
               <div className="card-body">
                 <h6 className="card-title">
