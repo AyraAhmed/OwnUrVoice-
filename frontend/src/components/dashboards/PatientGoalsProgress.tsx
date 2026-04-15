@@ -141,7 +141,7 @@ const PatientGoalsProgress: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Filter state 
+  // Filter state
   // Tracks which filter tab the patient has selected — defaults to showing all goals
   const [goalFilter, setGoalFilter] = useState<'all' | 'in-progress' | 'completed'>('all');
 
