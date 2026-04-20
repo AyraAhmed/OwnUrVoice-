@@ -215,6 +215,11 @@ const GoalsExercises: React.FC = () => {
   /**
    * Handles saving a new exercise and linking it to a specific goal.
    * auto-generates a schedule based on the chosen frequency 
+   * 
+   * Note: The logic for calculating the exercise schedule rows based on
+   * the goal's target date was developed with inspiration and debugging
+   * assistance from Claude. The final implementation was reviewed, adapted and validated to reflect the specific data
+   * structure and requirements of OwnUrVoice.
    */
   const handleSaveExercise = async (e: React.FormEvent, goalId: string) => {
     e.preventDefault(); // Prevent the browser from reloading the page
